@@ -2,10 +2,9 @@
 <!--welcome: I am Yangliduo Lai-->
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
 
-<!--施工中
 <!--metrics of information statistics-->
-![Metrics](/github-metrics.svg)
--->
+<!--施工中![Metrics](/github-metrics.svg)-->
+
 
 
 <!--
