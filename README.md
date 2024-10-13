@@ -1,5 +1,9 @@
 ## Hi there 👋
 I am Yangliduo Lai!
+
+![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=Yangliduo-Lai)
+![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Yangliduo-Lai)
+
 <!--
 **Yangliduo-Lai/Yangliduo-Lai** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
