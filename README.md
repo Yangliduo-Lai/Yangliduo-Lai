@@ -1,5 +1,5 @@
 ## Hi there 👋
-![Typing SVG](https://readme-typing-svg.demolab.com/?lines=;I am Yangliduo Lai!;)
+![Typing SVG](https://readme-typing-svg.demolab.com/?lines=I;am Yangliduo Lai!;)
 
 
 ![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=Yangliduo-Lai)
