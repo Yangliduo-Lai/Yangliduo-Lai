@@ -5,7 +5,7 @@ on:
   # Lines below let you run workflow manually and on each commit
   workflow_dispatch:
   push: {branches: ["master", "main"]}
-jobs:
+jobs:1
   github-metrics:
     runs-on: ubuntu-latest
     environment: 
