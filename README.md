@@ -1,6 +1,6 @@
-## Hi there 👋
+## Hello, world!!
 <!--welcome: I am Yangliduo Lai-->
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=Hello%2C+I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
 
 ![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=Yangliduo-Lai)
 ![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Yangliduo-Lai)
