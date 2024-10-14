@@ -1,11 +1,13 @@
-# <span style="Fira+Code; color: #4523E1;">Hello, world !!</span>
-<!--welcome: I am Yangliduo Lai-->
+# Hello, world !!
+<!-- welcome: I am Yangliduo Lai -->
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
+
+<!-- cv -->
+(https://app.rendercv.com/ "CV")
+
 
 <!--metrics of information statistics-->
 <!--施工中![Metrics](/github-metrics.svg)-->
-
-
 
 <!--
 **Yangliduo-Lai/Yangliduo-Lai** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
