@@ -3,7 +3,7 @@
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
 
 <!-- cv -->
-(https://app.rendercv.com/ "CV")
+[CV](https://app.rendercv.com/)
 
 
 <!--metrics of information statistics-->
