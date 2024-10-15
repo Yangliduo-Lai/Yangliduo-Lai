@@ -5,10 +5,6 @@
 <!-- cv -->
 [CV](https://app.rendercv.com/)
 
-
-<!--metrics of information statistics-->
-<!--施工中![Metrics](/github-metrics.svg)-->
-
 <!--
 **Yangliduo-Lai/Yangliduo-Lai** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
