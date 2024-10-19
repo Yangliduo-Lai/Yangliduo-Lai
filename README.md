@@ -1,4 +1,3 @@
-# Hello, world !!
 <!-- 
 welcome: I am Yangliduo Lai 
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=4523E1&width=435&lines=I+am+Yangliduo+Lai!)](https://git.io/typing-svg)
