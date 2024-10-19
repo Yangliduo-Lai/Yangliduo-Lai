@@ -4,7 +4,7 @@ welcome: I am Yangliduo Lai
 -->
 
 <!-- cv -->
-[CV]([https://app.rendercv.com/](https://www.overleaf.com/project/671316739c88952666b0ab30))
+[CV]([https://www.overleaf.com/project/671316739c88952666b0ab30])
 
 <!--
 **Yangliduo-Lai/Yangliduo-Lai** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
