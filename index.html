@@ -7,7 +7,7 @@
     <title>Yangliduo Lai</title>
     <link rel="preconnect" href="https://github.com" />
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-tag-graph" defer></script>
+    <script src="assets/script.js?v=20260618-home-writing" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -31,13 +31,19 @@
       <main>
         <section class="home-hero" aria-label="Personal homepage introduction">
           <article class="profile-card">
-            <img
-              class="profile-avatar large"
-              src="https://github.com/Yangliduo-Lai.png"
-              alt="Yangliduo Lai GitHub avatar"
-              width="144"
-              height="144"
-            />
+            <div class="profile-media">
+              <img
+                class="profile-avatar large"
+                src="https://github.com/Yangliduo-Lai.png"
+                alt="Yangliduo Lai GitHub avatar"
+                width="144"
+                height="144"
+              />
+              <div class="profile-links" aria-label="Contact links">
+                <a href="mailto:yangliduolai@gmail.com">yangliduolai@gmail.com</a>
+                <a href="https://github.com/Yangliduo-Lai" target="_blank" rel="noreferrer">GitHub</a>
+              </div>
+            </div>
             <div class="profile-card-copy">
               <p class="eyebrow">Personal Website</p>
               <h1>Yangliduo Lai</h1>
@@ -47,38 +53,6 @@
               </p>
             </div>
           </article>
-
-          <aside class="home-stack" aria-label="Homepage quick information">
-            <section class="surface-card latest-card">
-              <div class="card-heading-row">
-                <div>
-                  <p class="eyebrow">Latest Blog</p>
-                  <h2>Recent writing</h2>
-                </div>
-                <a class="text-link" href="blog.html">All posts</a>
-              </div>
-              <div class="home-posts compact" data-home-posts></div>
-            </section>
-
-            <section class="surface-card facts-card">
-              <div>
-                <span class="panel-label">Current status</span>
-                <strong>To be updated</strong>
-              </div>
-              <div>
-                <span class="panel-label">Affiliation</span>
-                <strong>To be updated</strong>
-              </div>
-              <div>
-                <span class="panel-label">Research interests</span>
-                <strong>To be updated</strong>
-              </div>
-              <div>
-                <span class="panel-label">Contact</span>
-                <strong>To be updated</strong>
-              </div>
-            </section>
-          </aside>
         </section>
 
         <section class="section" id="overview">
@@ -110,12 +84,12 @@
           <div class="section-heading">
             <p class="eyebrow">Writing</p>
             <h2>Blog</h2>
-            <p>Recent titles are shown on the first screen. Open the blog page for tag search and full entries.</p>
+            <p>Recent titles are shown here automatically. Open the blog page for tag search and full entries.</p>
             <a class="text-link" href="blog.html">Open all posts</a>
           </div>
-          <article class="info-card">
-            <h3>Writing Placeholder</h3>
-            <p>To be updated with writing themes, reading notes, project reflections, and longer essays.</p>
+          <article class="info-card blog-title-card">
+            <h3>Latest posts</h3>
+            <div class="home-posts title-list" data-home-posts></div>
           </article>
         </section>
 

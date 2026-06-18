@@ -411,7 +411,7 @@
   };
 
   const renderHomePosts = async () => {
-    const mounts = Array.from(document.querySelectorAll("[data-home-posts], [data-home-posts-secondary]"));
+    const mounts = Array.from(document.querySelectorAll("[data-home-posts]"));
     if (!mounts.length) return;
 
     try {
