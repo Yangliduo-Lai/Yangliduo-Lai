@@ -339,8 +339,12 @@
       const visiblePosts = filteredPosts.slice(pageStart, pageStart + POSTS_PER_PAGE);
 
       if (tagMount) {
-        tagMount.innerHTML = renderTagGraph(posts, currentTag);
-        enableTagDragging(tagMount);
+        try {
+          tagMount.innerHTML = renderTagGraph(posts, currentTag);
+          enableTagDragging(tagMount);
+        } catch (error) {
+          tagMount.innerHTML = '<div class="empty-state">Tag Map 暂时无法加载。</div>';
+        }
       }
 
       if (statusMount) {
@@ -582,10 +586,9 @@
       count: Number(edge.dataset.count || 1)
     }));
 
-    const nodeById = new Map(nodes.map((node) => [node.id, node]));
     const linkSelection = d3.select(svg).selectAll(".tag-edge").data(links);
-    const nodeSelection = d3.select(svg).selectAll(".tag-node-link").data(nodes, (node) => node.id);
-    const labelSelection = d3.select(svg).selectAll(".tag-node-label").data(nodes, (node) => node.id);
+    const nodeSelection = d3.select(svg).selectAll(".tag-node-link").data(nodes);
+    const labelSelection = d3.select(svg).selectAll(".tag-node-label").data(nodes);
 
     const clamp = (node) => {
       node.x = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, node.x));
@@ -660,7 +663,7 @@
         event.preventDefault();
         return;
       }
-      if (!nodeById.has(node.id)) {
+      if (!node || !node.id) {
         event.preventDefault();
       }
     });

@@ -709,7 +709,7 @@ h3 {
 
 .blog-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.82fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
   gap: 18px;
   align-items: start;
 }
@@ -882,7 +882,6 @@ h3 {
   }
 
   .home-hero,
-  .blog-layout,
   .two-column,
   .research-grid {
     grid-template-columns: 1fr;
@@ -906,6 +905,12 @@ h3 {
   .tag-graph-card {
     position: relative;
     top: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .blog-layout {
+    grid-template-columns: 1fr;
   }
 }
 
