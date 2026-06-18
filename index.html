@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Yangliduo Lai 的个人主页，展示研究方向、项目 PaperHyperGraphRAG、技术能力与联系方式。"
+    />
+    <title>Yangliduo Lai | Research & Engineering</title>
+    <link rel="preconnect" href="https://github.com" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="assets/script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="Yangliduo Lai home">
+        <span class="brand-mark">YL</span>
+        <span>Yangliduo Lai</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#research">Research</a>
+        <a href="#projects">Projects</a>
+        <a href="#profile">Profile</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <button class="icon-button" type="button" data-theme-toggle aria-label="Toggle theme">
+        <i data-lucide="sun"></i>
+      </button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <canvas class="hero-canvas" data-graph-canvas aria-hidden="true"></canvas>
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow">Academic graph intelligence · RAG systems · Research tooling</p>
+            <h1>Yangliduo Lai</h1>
+            <p class="hero-lede">
+              I build research prototypes that turn fragmented academic text into structured entities,
+              associations, and higher-order knowledge graphs.
+            </p>
+            <div class="hero-actions" aria-label="Primary actions">
+              <a class="button primary" href="#projects">
+                <i data-lucide="network"></i>
+                View work
+              </a>
+              <a class="button secondary" href="https://github.com/Yangliduo-Lai" target="_blank" rel="noreferrer">
+                <i data-lucide="github"></i>
+                GitHub
+              </a>
+            </div>
+          </div>
+
+          <aside class="identity-panel" aria-label="Profile snapshot">
+            <img
+              class="avatar"
+              src="https://github.com/Yangliduo-Lai.png"
+              alt="Yangliduo Lai GitHub avatar"
+              width="144"
+              height="144"
+            />
+            <dl class="quick-facts">
+              <div>
+                <dt>Current focus</dt>
+                <dd>HyperGraphRAG for academic knowledge discovery</dd>
+              </div>
+              <div>
+                <dt>Working style</dt>
+                <dd>Research prototype, evaluation, and full-stack tooling</dd>
+              </div>
+              <div>
+                <dt>Location</dt>
+                <dd>Asia/Shanghai</dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="research">
+        <div class="section-heading">
+          <p class="eyebrow">Research direction</p>
+          <h2>From paper fragments to academic hypergraphs</h2>
+          <p>
+            My current work explores how to extract meaningful research entities from papers, learn their
+            association space, and generate hyperedges that represent multi-entity scholarly relations.
+          </p>
+        </div>
+
+        <div class="process-grid" aria-label="Research pipeline">
+          <article class="process-step">
+            <span>01</span>
+            <h3>Framework extraction</h3>
+            <p>Parse fragments into research roles such as problem, gap, method, evidence, claim, and limitation.</p>
+          </article>
+          <article class="process-step">
+            <span>02</span>
+            <h3>Entity modeling</h3>
+            <p>Build entity records from original text so the model learns from complete research units.</p>
+          </article>
+          <article class="process-step">
+            <span>03</span>
+            <h3>Association learning</h3>
+            <p>Use concepts, academic roles, shared anchors, and hard negatives to learn association vectors.</p>
+          </article>
+          <article class="process-step">
+            <span>04</span>
+            <h3>Hyperedge generation</h3>
+            <p>Group complementary entities into traceable hyperedges that explain research directions.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split-section" id="projects">
+        <div class="section-heading compact">
+          <p class="eyebrow">Featured prototype</p>
+          <h2>PaperHyperGraphRAG</h2>
+          <p>
+            A research prototype for constructing HyperGraphRAG-style academic hypergraphs from paper fragments
+            or existing entity JSON.
+          </p>
+        </div>
+
+        <div class="project-layout">
+          <article class="project-main">
+            <div class="project-title-row">
+              <h3>What it does</h3>
+              <a class="text-link" href="https://github.com/Yangliduo-Lai/PaperHyperGraphRAG" target="_blank" rel="noreferrer">
+                Repository
+                <i data-lucide="external-link"></i>
+              </a>
+            </div>
+            <p>
+              PaperHyperGraphRAG converts academic text into nested frameworks, meaningful entities,
+              association graphs, and generated hyperedges. The emphasis is not keyword matching, but
+              functional academic relations such as limitation-method, claim-evidence, and method-evidence.
+            </p>
+            <div class="tag-row" aria-label="Project tags">
+              <span>GraphRAG</span>
+              <span>Hypergraph</span>
+              <span>Entity extraction</span>
+              <span>Research tooling</span>
+              <span>Python</span>
+            </div>
+          </article>
+
+          <div class="signal-list" aria-label="Project outputs">
+            <div>
+              <strong>Association vectors</strong>
+              <span>Represent entity-level academic relation space.</span>
+            </div>
+            <div>
+              <strong>Top-k neighbors</strong>
+              <span>Expose closely related entities with traceable scores.</span>
+            </div>
+            <div>
+              <strong>Generated hyperedges</strong>
+              <span>Capture higher-order relationships across papers.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="profile">
+        <div class="section-heading">
+          <p class="eyebrow">Profile</p>
+          <h2>Research-minded engineering</h2>
+          <p>
+            I enjoy building systems where model behavior, data structure, and interface design can be inspected
+            together. The goal is to make research workflows more legible, reproducible, and useful.
+          </p>
+        </div>
+
+        <div class="profile-grid">
+          <article>
+            <h3>Interests</h3>
+            <ul>
+              <li>Graph-based retrieval and knowledge organization</li>
+              <li>Academic entity extraction and relation modeling</li>
+              <li>LLM-assisted research workflows</li>
+              <li>Evaluation for retrieval and reasoning systems</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Toolbox</h3>
+            <ul>
+              <li>Python research prototypes and CLI tooling</li>
+              <li>Data modeling with JSON and graph structures</li>
+              <li>Lightweight web interfaces for demos</li>
+              <li>Experiment design and result interpretation</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="contact-band" id="contact">
+        <div>
+          <p class="eyebrow">Contact</p>
+          <h2>Open to research conversations and prototype collaboration.</h2>
+        </div>
+        <div class="contact-actions">
+          <a class="button primary" href="https://github.com/Yangliduo-Lai" target="_blank" rel="noreferrer">
+            <i data-lucide="github"></i>
+            GitHub profile
+          </a>
+          <a class="button secondary" href="https://app.rendercv.com/" target="_blank" rel="noreferrer">
+            <i data-lucide="file-user"></i>
+            CV
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>© <span data-year></span> Yangliduo Lai</span>
+      <a href="#top">Back to top</a>
+    </footer>
+  </body>
+</html>
