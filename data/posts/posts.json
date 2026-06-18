@@ -4,7 +4,7 @@
     "title": "推荐系统到底在优化什么？",
     "date": "2026-06-18",
     "summary": "推荐系统概述",
-    "tags": ["recommendation"],
+    "tags": ["recommendation", "Collaborative filtering", "DNN"],
     "file": "data/posts/2026-06-18-推荐系统到底在优化什么？.md"
   },
   {
