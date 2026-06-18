@@ -184,7 +184,7 @@
   };
 
   const loadPosts = async () => {
-    const response = await fetch("data/posts.json", { cache: "no-store" });
+    const response = await fetch("data/posts/posts.json", { cache: "no-store" });
     if (!response.ok) {
       throw new Error("Unable to load posts.json");
     }

@@ -1,8 +1,10 @@
-{
+[
+  {
     "slug": "my-first-post",
-    "title": "我的第一篇博客",
+    "title": "从协同过滤到图推荐：推荐系统到底在优化什么？",
     "date": "2026-06-18",
-    "summary": "这是一段摘要。",
-    "tags": ["note"],
-    "file": "posts/2026-06-18-my-first-post.md"
-}
+    "summary": "一篇用于演示博客系统的文章：从用户-物品交互出发，理解推荐系统如何从相似性走向图结构。",
+    "tags": ["recommendation", "graph", "note"],
+    "file": "data/posts/2026-06-18-my-first-post.md"
+  }
+]

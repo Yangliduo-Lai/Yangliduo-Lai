@@ -6,18 +6,18 @@
 
 - `blog.html`: 博客列表页
 - `post.html`: 单篇文章页
-- `data/posts.json`: 文章索引
-- `posts/`: Markdown 文章目录
+- `data/posts/posts.json`: 文章索引
+- `data/posts/`: Markdown 文章目录
 
 ### 添加一篇博客
 
-1. 在 `posts/` 目录下创建一篇 Markdown 文件，例如：
+1. 在 `data/posts/` 目录下创建一篇 Markdown 文件，例如：
 
 ```text
-posts/2026-06-18-my-first-post.md
+data/posts/2026-06-18-my-first-post.md
 ```
 
-2. 在 `data/posts.json` 中添加一条记录：
+2. 在 `data/posts/posts.json` 中添加一条记录：
 
 ```json
 {
@@ -26,14 +26,14 @@ posts/2026-06-18-my-first-post.md
   "date": "2026-06-18",
   "summary": "这是一段会显示在博客列表里的摘要。",
   "tags": ["note"],
-  "file": "posts/2026-06-18-my-first-post.md"
+  "file": "data/posts/2026-06-18-my-first-post.md"
 }
 ```
 
 3. 提交并推送：
 
 ```bash
-git add data/posts.json posts/2026-06-18-my-first-post.md
+git add data/posts/posts.json data/posts/2026-06-18-my-first-post.md
 git commit -m "post: add my first blog"
 git push origin main
 ```
