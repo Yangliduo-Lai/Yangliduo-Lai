@@ -200,9 +200,10 @@
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   };
 
-  const getBlogUrl = ({ tag, page } = {}) => {
+  const getBlogUrl = ({ tag, page, q } = {}) => {
     const params = new URLSearchParams();
     if (tag) params.set("tag", tag);
+    if (q) params.set("q", q);
     if (page && page > 1) params.set("page", String(page));
     const query = params.toString();
     return query ? `blog.html?${query}` : "blog.html";
@@ -237,7 +238,7 @@
     };
   };
 
-  const renderTagGraph = (posts, currentTag) => {
+  const renderTagGraph = (posts, currentTag, currentQuery) => {
     const { nodes, edges } = getTagNetwork(posts);
     if (!nodes.length) {
       return '<div class="empty-state">还没有可以展示的 tag。</div>';
@@ -290,7 +291,7 @@
         const active = node.tag === currentTag;
         const labelY = point.y + point.size + 18;
         return `
-          <a class="tag-node-link" href="${getBlogUrl({ tag: node.tag })}" data-tag="${escapeHtml(node.tag)}">
+          <a class="tag-node-link" href="${getBlogUrl({ tag: node.tag, q: currentQuery })}" data-tag="${escapeHtml(node.tag)}">
             <g
               class="tag-node${active ? " is-active" : ""}"
               data-tag="${escapeHtml(node.tag)}"
@@ -327,21 +328,53 @@
       const posts = await loadPosts();
       const params = new URLSearchParams(window.location.search);
       const currentTag = params.get("tag");
+      const currentQuery = (params.get("q") || "").trim();
+      const normalizedQuery = currentQuery.toLowerCase();
       const requestedPage = Math.max(1, Number(params.get("page")) || 1);
       const tagMount = document.querySelector("[data-tag-graph]");
       const statusMount = document.querySelector("[data-filter-status]");
       const paginationMount = document.querySelector("[data-pagination]");
-      const filteredPosts = currentTag
-        ? posts.filter((post) => (post.tags || []).includes(currentTag))
-        : posts;
+      const searchForm = document.querySelector("[data-blog-search]");
+      const searchInput = document.querySelector("[data-blog-search-input]");
+      const countMount = document.querySelector("[data-blog-count]");
+      const statsMount = document.querySelector("[data-blog-stats]");
+      const filteredPosts = posts.filter((post) => {
+        const matchesTag = !currentTag || (post.tags || []).includes(currentTag);
+        const haystack = [post.title, post.summary, post.slug, ...(post.tags || [])].join(" ").toLowerCase();
+        const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+        return matchesTag && matchesQuery;
+      });
       const pageCount = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
       const currentPage = Math.min(requestedPage, pageCount);
       const pageStart = (currentPage - 1) * POSTS_PER_PAGE;
       const visiblePosts = filteredPosts.slice(pageStart, pageStart + POSTS_PER_PAGE);
 
+      if (searchInput) {
+        searchInput.value = currentQuery;
+      }
+
+      if (searchForm && searchInput && searchForm.dataset.bound !== "true") {
+        searchForm.dataset.bound = "true";
+        searchForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          window.location.href = getBlogUrl({
+            tag: currentTag,
+            q: searchInput.value.trim()
+          });
+        });
+      }
+
+      if (countMount) {
+        countMount.textContent = `${filteredPosts.length} / ${posts.length}`;
+      }
+
+      if (statsMount) {
+        statsMount.innerHTML = renderBlogStats(posts, currentTag, currentQuery);
+      }
+
       if (tagMount) {
         try {
-          tagMount.innerHTML = renderTagGraph(posts, currentTag);
+          tagMount.innerHTML = renderTagGraph(posts, currentTag, currentQuery);
           enableTagDragging(tagMount);
         } catch (error) {
           tagMount.innerHTML = '<div class="empty-state">Tag Map 暂时无法加载。</div>';
@@ -349,8 +382,11 @@
       }
 
       if (statusMount) {
-        statusMount.innerHTML = currentTag
-          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章 · 第 ${currentPage} / ${pageCount} 页 · <a href="blog.html">清除筛选</a>`
+        const activeFilters = [];
+        if (currentTag) activeFilters.push(`tag：<strong>${escapeHtml(currentTag)}</strong>`);
+        if (currentQuery) activeFilters.push(`搜索：<strong>${escapeHtml(currentQuery)}</strong>`);
+        statusMount.innerHTML = activeFilters.length
+          ? `${activeFilters.join(" · ")} · ${filteredPosts.length} 篇文章 · 第 ${currentPage} / ${pageCount} 页 · <a href="blog.html">清除筛选</a>`
           : `全部文章 · ${posts.length} 篇 · 第 ${currentPage} / ${pageCount} 页`;
       }
 
@@ -360,7 +396,7 @@
       }
 
       if (!filteredPosts.length) {
-        mount.innerHTML = '<div class="empty-state">这个标签下暂时没有文章。</div>';
+        mount.innerHTML = '<div class="empty-state">暂时没有匹配的文章。</div>';
         if (paginationMount) {
           paginationMount.innerHTML = "";
         }
@@ -372,7 +408,7 @@
           const postTags = (post.tags || [])
             .map(
               (tag) => `
-                <a class="tag-pill" href="${getBlogUrl({ tag })}">
+                <a class="tag-pill" href="${getBlogUrl({ tag, q: currentQuery })}">
                   ${escapeHtml(tag)}
                 </a>
               `
@@ -390,30 +426,59 @@
         .join("");
 
       if (paginationMount) {
-        paginationMount.innerHTML = renderPagination(currentTag, currentPage, pageCount);
+        paginationMount.innerHTML = renderPagination(currentTag, currentQuery, currentPage, pageCount);
       }
     } catch (error) {
       mount.innerHTML = '<div class="empty-state">博客列表暂时无法加载。</div>';
     }
   };
 
-  const renderPagination = (tag, currentPage, pageCount) => {
+  const renderBlogStats = (posts, currentTag, currentQuery) => {
+    const { nodes } = getTagNetwork(posts);
+    const topTags = nodes.slice(0, 3)
+      .map(
+        (node) => `
+          <a class="blog-stat" href="${getBlogUrl({ tag: node.tag, q: currentQuery })}"${node.tag === currentTag ? ' aria-current="true"' : ""}>
+            <strong>${escapeHtml(node.tag)}</strong>
+            <span>${node.count} posts</span>
+          </a>
+        `
+      )
+      .join("");
+    const latest = posts[0];
+
+    return `
+      <div class="blog-stat">
+        <strong>${posts.length}</strong>
+        <span>Total posts</span>
+      </div>
+      ${latest ? `
+        <a class="blog-stat" href="post.html?slug=${encodeURIComponent(latest.slug)}">
+          <strong>${formatDate(latest.date)}</strong>
+          <span>Latest</span>
+        </a>
+      ` : ""}
+      ${topTags}
+    `;
+  };
+
+  const renderPagination = (tag, q, currentPage, pageCount) => {
     if (pageCount <= 1) return "";
 
     const pages = Array.from({ length: pageCount }, (_, index) => index + 1)
       .map((page) => {
         const current = page === currentPage ? ' aria-current="page"' : "";
-        return `<a href="${getBlogUrl({ tag, page })}"${current}>${page}</a>`;
+        return `<a href="${getBlogUrl({ tag, q, page })}"${current}>${page}</a>`;
       })
       .join("");
 
     const previous =
       currentPage > 1
-        ? `<a class="pagination-step" href="${getBlogUrl({ tag, page: currentPage - 1 })}">Prev</a>`
+        ? `<a class="pagination-step" href="${getBlogUrl({ tag, q, page: currentPage - 1 })}">Prev</a>`
         : '<span class="pagination-step is-disabled">Prev</span>';
     const next =
       currentPage < pageCount
-        ? `<a class="pagination-step" href="${getBlogUrl({ tag, page: currentPage + 1 })}">Next</a>`
+        ? `<a class="pagination-step" href="${getBlogUrl({ tag, q, page: currentPage + 1 })}">Next</a>`
         : '<span class="pagination-step is-disabled">Next</span>';
 
     return `${previous}<div class="pagination-pages">${pages}</div>${next}`;

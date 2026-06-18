@@ -6,7 +6,7 @@
     <meta name="description" content="Yangliduo Lai 的博客。" />
     <title>Blog | Yangliduo Lai</title>
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-blog-layout-zoom" defer></script>
+    <script src="assets/script.js?v=20260618-blog-search" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -35,12 +35,32 @@
             <nav class="pagination" data-pagination aria-label="Blog pagination"></nav>
           </section>
 
-          <aside class="tag-graph-card" aria-label="Filter posts by tag graph">
-            <div class="tag-graph-header">
-              <span class="tag-icon" aria-hidden="true"></span>
-              <h2>Tag Map</h2>
-            </div>
-            <div class="tag-graph" data-tag-graph></div>
+          <aside class="blog-sidebar" aria-label="Blog tools">
+            <section class="tag-graph-card" aria-label="Filter posts by tag graph">
+              <div class="tag-graph-header">
+                <span class="tag-icon" aria-hidden="true"></span>
+                <h2>Tag Map</h2>
+              </div>
+              <div class="tag-graph" data-tag-graph></div>
+            </section>
+
+            <section class="blog-tool-card" aria-label="Search posts">
+              <div class="blog-tool-heading">
+                <h2>Search</h2>
+                <span data-blog-count></span>
+              </div>
+              <form class="blog-search" data-blog-search>
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Title, tag, summary"
+                  autocomplete="off"
+                  data-blog-search-input
+                />
+                <button type="submit">Search</button>
+              </form>
+              <div class="blog-stat-grid" data-blog-stats></div>
+            </section>
           </aside>
         </section>
 

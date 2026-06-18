@@ -486,7 +486,8 @@ h3 {
 }
 
 .tag-panel,
-.tag-graph-card {
+.tag-graph-card,
+.blog-tool-card {
   display: grid;
   gap: 14px;
   padding: clamp(18px, 3vw, 26px);
@@ -496,11 +497,17 @@ h3 {
   box-shadow: var(--shadow);
 }
 
-.tag-graph-card {
+.blog-sidebar {
   position: sticky;
   top: 24px;
+  display: grid;
+  gap: 18px;
   align-self: start;
   min-height: var(--blog-panel-min-height);
+}
+
+.tag-graph-card {
+  align-self: start;
 }
 
 .tag-panel-heading,
@@ -563,6 +570,90 @@ h3 {
   display: grid;
   gap: 10px;
   align-content: start;
+}
+
+.blog-tool-card {
+  align-content: start;
+}
+
+.blog-tool-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blog-tool-heading h2 {
+  font-size: clamp(1.05rem, 2vw, 1.32rem);
+}
+
+.blog-tool-heading span {
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+.blog-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.blog-search input,
+.blog-search button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.blog-search input {
+  width: 100%;
+  padding: 8px 11px;
+  color: var(--ink);
+  background: var(--surface-strong);
+}
+
+.blog-search button {
+  padding: 8px 13px;
+  color: #fffdf8;
+  background: var(--teal-dark);
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.blog-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.blog-stat {
+  display: grid;
+  gap: 3px;
+  min-height: 74px;
+  align-content: center;
+  padding: 11px;
+  background: color-mix(in srgb, var(--surface-strong) 80%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.blog-stat:hover,
+.blog-stat[aria-current="true"] {
+  border-color: color-mix(in srgb, var(--teal) 46%, var(--line));
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface-strong));
+}
+
+.blog-stat strong {
+  font-size: 0.98rem;
+  line-height: 1.15;
+}
+
+.blog-stat span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 720;
 }
 
 .tag-graph-actions {
@@ -926,7 +1017,7 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .tag-graph-card {
+  .blog-sidebar {
     position: relative;
     top: auto;
     min-height: auto;
