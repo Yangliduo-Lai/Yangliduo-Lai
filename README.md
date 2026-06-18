@@ -1,5 +1,15 @@
 # Yangliduo Lai
 
+## Website
+
+这个仓库是个人主页和博客。首页目前使用占位内容搭出结构，后续可以逐步替换：
+
+- `index.html`: 首页，包括 News、Background、Education、Research、Writing
+- `blog.html`: 博客列表页
+- `post.html`: 单篇文章页
+- `assets/styles.css`: 页面样式
+- `assets/script.js`: 博客加载和 Markdown 渲染
+
 ## Blog
 
 这个仓库包含一个纯静态博客：

@@ -1,5 +1,13 @@
 [
   {
+    "slug": "second-demo-post",
+    "title": "一篇用于占位的博客：我可能会写些什么？",
+    "date": "2026-06-19",
+    "summary": "第二篇演示博客，用来展示多篇文章在博客列表中的排列方式。",
+    "tags": ["demo", "personal"],
+    "file": "data/posts/2026-06-19-second-demo-post.md"
+  },
+  {
     "slug": "my-first-post",
     "title": "从协同过滤到图推荐：推荐系统到底在优化什么？",
     "date": "2026-06-18",

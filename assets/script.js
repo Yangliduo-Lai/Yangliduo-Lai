@@ -186,9 +186,14 @@
   const loadPosts = async () => {
     const response = await fetch("data/posts/posts.json", { cache: "no-store" });
     if (!response.ok) {
-      throw new Error("Unable to load posts.json");
+      throw new Error("Unable to load posts index");
     }
     const posts = await response.json();
+
+    if (!Array.isArray(posts)) {
+      throw new Error("Posts index must be an array");
+    }
+
     return posts
       .filter((post) => !post.draft)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -266,6 +271,29 @@
     }
   };
 
+  const renderHomePosts = async () => {
+    const mount = document.querySelector("[data-home-posts]");
+    if (!mount) return;
+
+    try {
+      const posts = await loadPosts();
+      mount.innerHTML = posts
+        .slice(0, 2)
+        .map(
+          (post) => `
+            <a class="mini-post" href="post.html?slug=${encodeURIComponent(post.slug)}">
+              <time datetime="${escapeHtml(post.date)}">${formatDate(post.date)}</time>
+              <span>${escapeHtml(post.title)}</span>
+            </a>
+          `
+        )
+        .join("");
+    } catch (error) {
+      mount.innerHTML = '<p class="muted">博客预览暂时无法加载。</p>';
+    }
+  };
+
   renderBlogList();
   renderPost();
+  renderHomePosts();
 })();
