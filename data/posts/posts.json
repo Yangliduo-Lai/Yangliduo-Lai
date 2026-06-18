@@ -1,11 +1,11 @@
 [
   {
-    "slug": "my-first-post",
+    "slug": "00001",
     "title": "从协同过滤到图推荐：推荐系统到底在优化什么？",
     "date": "2026-06-18",
     "summary": "",
     "tags": ["recommendation"],
-    "file": "data/posts/2026-06-18-my-first-post.md"
+    "file": "data/posts/2026-06-18-从协同过滤到图推荐：推荐系统到底在优化什么？.md"
   },
   {
     "slug": "demo-research-note",
