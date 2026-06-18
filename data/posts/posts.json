@@ -1,0 +1,8 @@
+{
+    "slug": "my-first-post",
+    "title": "我的第一篇博客",
+    "date": "2026-06-18",
+    "summary": "这是一段摘要。",
+    "tags": ["note"],
+    "file": "posts/2026-06-18-my-first-post.md"
+}

@@ -1,66 +1,4 @@
 (function () {
-  const root = document.documentElement;
-  const savedTheme = localStorage.getItem("theme");
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  root.dataset.theme = savedTheme || (prefersDark ? "dark" : "light");
-
-  const year = document.querySelector("[data-year]");
-  if (year) {
-    year.textContent = new Date().getFullYear();
-  }
-
-  const refreshIcons = () => {
-    if (window.lucide) {
-      window.lucide.createIcons();
-    }
-  };
-
-  const themeButton = document.querySelector("[data-theme-toggle]");
-  const setThemeIcon = () => {
-    if (!themeButton) return;
-    themeButton.innerHTML = root.dataset.theme === "dark" ? '<i data-lucide="moon"></i>' : '<i data-lucide="sun"></i>';
-    refreshIcons();
-  };
-
-  if (themeButton) {
-    themeButton.addEventListener("click", () => {
-      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-      localStorage.setItem("theme", root.dataset.theme);
-      setThemeIcon();
-    });
-  }
-
-  const header = document.querySelector("[data-header]");
-  const syncHeader = () => {
-    if (header) {
-      header.classList.toggle("is-scrolled", window.scrollY > 6);
-    }
-  };
-  window.addEventListener("scroll", syncHeader, { passive: true });
-  syncHeader();
-
-  const navLinks = Array.from(document.querySelectorAll(".site-nav a"));
-  const sections = navLinks
-    .map((link) => document.querySelector(link.getAttribute("href")))
-    .filter(Boolean);
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      const active = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-
-      if (!active) return;
-
-      navLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === `#${active.target.id}`);
-      });
-    },
-    { rootMargin: "-30% 0px -55% 0px", threshold: [0.1, 0.4, 0.7] }
-  );
-
-  sections.forEach((section) => observer.observe(section));
-
   const canvas = document.querySelector("[data-graph-canvas]");
   const ctx = canvas ? canvas.getContext("2d") : null;
 
@@ -138,6 +76,196 @@
     requestAnimationFrame(draw);
   }
 
-  setThemeIcon();
-  window.addEventListener("load", refreshIcons);
+  const formatDate = (value) => {
+    if (!value) return "";
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("zh-CN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(date);
+  };
+
+  const escapeHtml = (value) =>
+    value.replace(/[&<>"']/g, (char) => {
+      const chars = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      };
+      return chars[char];
+    });
+
+  const renderInline = (value) => {
+    let output = escapeHtml(value);
+    output = output.replace(/`([^`]+)`/g, "<code>$1</code>");
+    output = output.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    output = output.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|[^)\s]+)\)/g, '<a href="$2">$1</a>');
+    return output;
+  };
+
+  const markdownToHtml = (source) => {
+    const lines = source.replace(/\r\n/g, "\n").split("\n");
+    const html = [];
+    let inList = false;
+    let inCode = false;
+    let codeLines = [];
+
+    const closeList = () => {
+      if (inList) {
+        html.push("</ul>");
+        inList = false;
+      }
+    };
+
+    lines.forEach((line) => {
+      const codeMatch = line.match(/^```/);
+      if (codeMatch) {
+        if (inCode) {
+          html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+          codeLines = [];
+          inCode = false;
+        } else {
+          closeList();
+          inCode = true;
+        }
+        return;
+      }
+
+      if (inCode) {
+        codeLines.push(line);
+        return;
+      }
+
+      if (!line.trim()) {
+        closeList();
+        return;
+      }
+
+      const heading = line.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        closeList();
+        const level = heading[1].length;
+        html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`);
+        return;
+      }
+
+      const item = line.match(/^[-*]\s+(.+)$/);
+      if (item) {
+        if (!inList) {
+          html.push("<ul>");
+          inList = true;
+        }
+        html.push(`<li>${renderInline(item[1])}</li>`);
+        return;
+      }
+
+      const quote = line.match(/^>\s?(.+)$/);
+      if (quote) {
+        closeList();
+        html.push(`<blockquote>${renderInline(quote[1])}</blockquote>`);
+        return;
+      }
+
+      closeList();
+      html.push(`<p>${renderInline(line)}</p>`);
+    });
+
+    closeList();
+    if (inCode) {
+      html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+    }
+
+    return html.join("\n");
+  };
+
+  const loadPosts = async () => {
+    const response = await fetch("data/posts.json", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Unable to load posts.json");
+    }
+    const posts = await response.json();
+    return posts
+      .filter((post) => !post.draft)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+  };
+
+  const renderBlogList = async () => {
+    const mount = document.querySelector("[data-blog-list]");
+    if (!mount) return;
+
+    try {
+      const posts = await loadPosts();
+      if (!posts.length) {
+        mount.innerHTML = '<div class="empty-state">这里会放我的博客。第一篇文章准备好之后，会显示在这里。</div>';
+        return;
+      }
+
+      mount.innerHTML = posts
+        .map((post) => {
+          const tags = (post.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+          return `
+            <a class="post-card" href="post.html?slug=${encodeURIComponent(post.slug)}">
+              <time datetime="${escapeHtml(post.date)}">${formatDate(post.date)}</time>
+              <h3>${escapeHtml(post.title)}</h3>
+              <p>${escapeHtml(post.summary || "")}</p>
+              ${tags ? `<div class="tag-row">${tags}</div>` : ""}
+            </a>
+          `;
+        })
+        .join("");
+    } catch (error) {
+      mount.innerHTML = '<div class="empty-state">博客列表暂时无法加载。</div>';
+    }
+  };
+
+  const renderPost = async () => {
+    const mount = document.querySelector("[data-post]");
+    if (!mount) return;
+
+    const slug = new URLSearchParams(window.location.search).get("slug");
+    if (!slug) {
+      mount.innerHTML = '<div class="empty-state">没有找到这篇文章。</div>';
+      return;
+    }
+
+    try {
+      const posts = await loadPosts();
+      const post = posts.find((item) => item.slug === slug);
+      if (!post) {
+        mount.innerHTML = '<div class="empty-state">没有找到这篇文章。</div>';
+        return;
+      }
+
+      document.title = `${post.title} | Yangliduo Lai`;
+      const response = await fetch(post.file, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Unable to load post markdown");
+      }
+      const markdown = await response.text();
+      const tags = (post.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+
+      mount.innerHTML = `
+        <a class="text-link" href="blog.html">Back to blog</a>
+        <article class="article-shell">
+          <header class="article-header">
+            <p class="post-meta">${formatDate(post.date)}</p>
+            <h1>${escapeHtml(post.title)}</h1>
+            ${post.summary ? `<p class="post-meta">${escapeHtml(post.summary)}</p>` : ""}
+            ${tags ? `<div class="tag-row">${tags}</div>` : ""}
+          </header>
+          <div class="article-body">${markdownToHtml(markdown)}</div>
+        </article>
+      `;
+    } catch (error) {
+      mount.innerHTML = '<div class="empty-state">文章暂时无法加载。</div>';
+    }
+  };
+
+  renderBlogList();
+  renderPost();
 })();

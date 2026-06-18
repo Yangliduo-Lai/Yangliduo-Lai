@@ -1,31 +1,44 @@
-# Hello, world !!
+# Yangliduo Lai
 
-I am **Yangliduo Lai**, currently exploring academic graph intelligence, GraphRAG, and research-oriented prototype systems.
+## Blog
 
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=0F766E&width=520&lines=I+am+Yangliduo+Lai!;Building+research+tools+with+graphs+and+RAG.;Current+focus%3A+PaperHyperGraphRAG.)](https://git.io/typing-svg)
+这个仓库包含一个纯静态博客：
 
-## Personal website prototype
+- `blog.html`: 博客列表页
+- `post.html`: 单篇文章页
+- `data/posts.json`: 文章索引
+- `posts/`: Markdown 文章目录
 
-This repository now includes an initial GitHub Pages prototype:
+### 添加一篇博客
 
-- `index.html`: personal homepage structure
-- `assets/styles.css`: responsive visual design
-- `assets/script.js`: theme switch, navigation state, and animated research graph
+1. 在 `posts/` 目录下创建一篇 Markdown 文件，例如：
 
-After enabling GitHub Pages for this repository, the site can be served from the `main` branch root.
+```text
+posts/2026-06-18-my-first-post.md
+```
 
-## Current focus
+2. 在 `data/posts.json` 中添加一条记录：
 
-- HyperGraphRAG-style academic knowledge graph construction
-- Meaningful entity extraction from paper fragments
-- Association learning between research entities
-- Traceable hyperedge generation for scholarly retrieval
+```json
+{
+  "slug": "my-first-post",
+  "title": "我的第一篇博客",
+  "date": "2026-06-18",
+  "summary": "这是一段会显示在博客列表里的摘要。",
+  "tags": ["note"],
+  "file": "posts/2026-06-18-my-first-post.md"
+}
+```
 
-## Links
+3. 提交并推送：
 
-- [GitHub](https://github.com/Yangliduo-Lai)
-- [CV](https://app.rendercv.com/)
-- [PaperHyperGraphRAG](https://github.com/Yangliduo-Lai/PaperHyperGraphRAG)
+```bash
+git add data/posts.json posts/2026-06-18-my-first-post.md
+git commit -m "post: add my first blog"
+git push origin main
+```
+
+GitHub Pages 更新后，文章会出现在 `blog.html`。
 
 <!--
 **Yangliduo-Lai/Yangliduo-Lai** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
