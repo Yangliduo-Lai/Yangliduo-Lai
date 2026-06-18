@@ -1,5 +1,61 @@
 [
   {
+    "slug": "demo-research-note",
+    "title": "示例博客：一条研究笔记可以怎么写？",
+    "date": "2026-06-26",
+    "summary": "用一篇占位文章演示研究笔记类博客的标题、摘要和标签展示。",
+    "tags": ["demo", "research", "note"],
+    "file": "data/posts/2026-06-26-demo-research-note.md"
+  },
+  {
+    "slug": "demo-reading-log",
+    "title": "示例博客：读论文时我会记录什么？",
+    "date": "2026-06-25",
+    "summary": "演示阅读记录类文章，用来测试博客列表、文章页和 tag 共现关系。",
+    "tags": ["demo", "reading", "paper"],
+    "file": "data/posts/2026-06-25-demo-reading-log.md"
+  },
+  {
+    "slug": "demo-project-reflection",
+    "title": "示例博客：项目复盘的一个模板",
+    "date": "2026-06-24",
+    "summary": "一篇用于占位的项目复盘文章，展示未来可以如何整理工程或研究项目。",
+    "tags": ["demo", "project", "reflection"],
+    "file": "data/posts/2026-06-24-demo-project-reflection.md"
+  },
+  {
+    "slug": "demo-graph-thinking",
+    "title": "示例博客：为什么我会关注图结构？",
+    "date": "2026-06-23",
+    "summary": "用简短示例说明图、关系建模和信息组织可以如何成为写作主题。",
+    "tags": ["graph", "research", "note"],
+    "file": "data/posts/2026-06-23-demo-graph-thinking.md"
+  },
+  {
+    "slug": "demo-tool-note",
+    "title": "示例博客：一个工具笔记的位置",
+    "date": "2026-06-22",
+    "summary": "演示工具笔记类博客，未来可以记录开发环境、工作流和小技巧。",
+    "tags": ["tool", "project", "note"],
+    "file": "data/posts/2026-06-22-demo-tool-note.md"
+  },
+  {
+    "slug": "demo-personal-update",
+    "title": "示例博客：个人主页上的近况更新",
+    "date": "2026-06-21",
+    "summary": "一篇近况类占位文章，用来测试不同类型内容在同一博客系统中的排列。",
+    "tags": ["personal", "update", "demo"],
+    "file": "data/posts/2026-06-21-demo-personal-update.md"
+  },
+  {
+    "slug": "demo-future-ideas",
+    "title": "示例博客：一些以后可能展开的想法",
+    "date": "2026-06-20",
+    "summary": "用来占位的想法清单，展示未来写作主题如何逐步扩展。",
+    "tags": ["idea", "personal", "research"],
+    "file": "data/posts/2026-06-20-demo-future-ideas.md"
+  },
+  {
     "slug": "second-demo-post",
     "title": "一篇用于占位的博客：我可能会写些什么？",
     "date": "2026-06-19",
