@@ -262,6 +262,8 @@
         return `
           <line
             class="tag-edge${active ? " is-active" : ""}"
+            data-source="${escapeHtml(edge.source)}"
+            data-target="${escapeHtml(edge.target)}"
             x1="${source.x}"
             y1="${source.y}"
             x2="${target.x}"
@@ -278,12 +280,12 @@
         const active = node.tag === currentTag;
         const labelY = point.y + point.size + 18;
         return `
-          <a class="tag-node-link" href="blog.html?tag=${encodeURIComponent(node.tag)}">
-            <g class="tag-node${active ? " is-active" : ""}" transform="translate(${point.x} ${point.y})">
+          <a class="tag-node-link" href="blog.html?tag=${encodeURIComponent(node.tag)}" data-tag="${escapeHtml(node.tag)}">
+            <g class="tag-node${active ? " is-active" : ""}" data-tag="${escapeHtml(node.tag)}" transform="translate(${point.x} ${point.y})">
               <circle r="${point.size.toFixed(2)}"></circle>
               <text class="tag-node-count" y="5">${node.count}</text>
             </g>
-            <text class="tag-node-label" x="${point.x}" y="${labelY}">${escapeHtml(node.tag)}</text>
+            <text class="tag-node-label" data-tag="${escapeHtml(node.tag)}" x="${point.x}" y="${labelY}">${escapeHtml(node.tag)}</text>
           </a>
         `;
       })
@@ -315,6 +317,7 @@
 
       if (tagMount) {
         tagMount.innerHTML = renderTagGraph(posts, currentTag);
+        enableTagDragging(tagMount);
       }
 
       if (statusMount) {
@@ -357,6 +360,91 @@
     } catch (error) {
       mount.innerHTML = '<div class="empty-state">博客列表暂时无法加载。</div>';
     }
+  };
+
+  const enableTagDragging = (mount) => {
+    const svg = mount.querySelector(".tag-network");
+    if (!svg) return;
+
+    let active = null;
+
+    const getPoint = (event) => {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    };
+
+    const updateNode = (tag, x, y) => {
+      const node = Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
+      const label = Array.from(svg.querySelectorAll(".tag-node-label")).find((item) => item.dataset.tag === tag);
+      if (!node || !label) return;
+
+      const circle = node.querySelector("circle");
+      const nodeRadius = circle ? Number(circle.getAttribute("r")) : 24;
+      node.setAttribute("transform", `translate(${x} ${y})`);
+      label.setAttribute("x", x);
+      label.setAttribute("y", y + nodeRadius + 18);
+
+      svg.querySelectorAll(".tag-edge").forEach((edge) => {
+        if (edge.dataset.source === tag) {
+          edge.setAttribute("x1", x);
+          edge.setAttribute("y1", y);
+        }
+        if (edge.dataset.target === tag) {
+          edge.setAttribute("x2", x);
+          edge.setAttribute("y2", y);
+        }
+      });
+    };
+
+    svg.querySelectorAll(".tag-node-link").forEach((link) => {
+      link.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        const tag = link.dataset.tag;
+        const node = Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
+        if (!tag || !node) return;
+
+        const transform = node.getAttribute("transform") || "translate(0 0)";
+        const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+        const current = match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
+        const pointer = getPoint(event);
+        active = {
+          dragged: false,
+          offsetX: pointer.x - current.x,
+          offsetY: pointer.y - current.y,
+          tag
+        };
+
+        link.setPointerCapture(event.pointerId);
+      });
+
+      link.addEventListener("pointermove", (event) => {
+        if (!active || active.tag !== link.dataset.tag) return;
+        event.preventDefault();
+        const pointer = getPoint(event);
+        active.dragged = true;
+        updateNode(active.tag, pointer.x - active.offsetX, pointer.y - active.offsetY);
+      });
+
+      link.addEventListener("pointerup", (event) => {
+        if (!active || active.tag !== link.dataset.tag) return;
+        if (active.dragged) {
+          event.preventDefault();
+          link.dataset.dragged = "true";
+          window.setTimeout(() => {
+            delete link.dataset.dragged;
+          }, 200);
+        }
+        active = null;
+      });
+
+      link.addEventListener("click", (event) => {
+        if (link.dataset.dragged === "true") {
+          event.preventDefault();
+        }
+      });
+    });
   };
 
   const renderPost = async () => {

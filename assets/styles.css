@@ -423,27 +423,14 @@ h3 {
   padding: clamp(56px, 9vw, 110px) 0;
 }
 
-.blog-overview {
+.blog-heading {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1fr);
-  gap: 18px;
-  align-items: stretch;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
-.compact-heading {
-  align-content: center;
-  min-height: 320px;
-  margin-bottom: 0;
-  padding: clamp(20px, 4vw, 30px);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.compact-heading h1 {
-  font-size: clamp(2.4rem, 6vw, 4.5rem);
+.blog-heading h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
 }
 
 .blog-list {
@@ -501,6 +488,7 @@ h3 {
 .tag-graph-card {
   display: grid;
   gap: 18px;
+  margin-bottom: 24px;
   padding: clamp(20px, 4vw, 30px);
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--line);
@@ -511,14 +499,14 @@ h3 {
 .tag-panel-heading,
 .tag-graph-header {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 44px max-content;
   gap: 14px;
-  align-items: start;
+  align-items: center;
 }
 
 .tag-panel-heading h2,
 .tag-graph-header h2 {
-  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
 }
 
 .tag-panel-heading p,
@@ -576,7 +564,8 @@ h3 {
 
 .tag-network {
   width: 100%;
-  min-height: 280px;
+  min-height: 340px;
+  touch-action: none;
 }
 
 .tag-edge {
@@ -592,6 +581,11 @@ h3 {
 
 .tag-node-link {
   cursor: pointer;
+  user-select: none;
+}
+
+.tag-node-link:active {
+  cursor: grabbing;
 }
 
 .tag-node circle {
@@ -824,7 +818,6 @@ h3 {
   }
 
   .home-hero,
-  .blog-overview,
   .two-column,
   .research-grid {
     grid-template-columns: 1fr;
