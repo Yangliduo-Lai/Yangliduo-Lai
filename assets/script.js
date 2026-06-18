@@ -370,7 +370,7 @@
       }
 
       if (statsMount) {
-        statsMount.innerHTML = renderBlogStats(posts, currentTag, currentQuery);
+        statsMount.innerHTML = renderBlogStats(posts);
       }
 
       if (frequencyMount) {
@@ -438,18 +438,7 @@
     }
   };
 
-  const renderBlogStats = (posts, currentTag, currentQuery) => {
-    const { nodes } = getTagNetwork(posts);
-    const topTags = nodes.slice(0, 3)
-      .map(
-        (node) => `
-          <a class="blog-stat" href="${getBlogUrl({ tag: node.tag, q: currentQuery })}"${node.tag === currentTag ? ' aria-current="true"' : ""}>
-            <strong>${escapeHtml(node.tag)}</strong>
-            <span>${node.count} posts</span>
-          </a>
-        `
-      )
-      .join("");
+  const renderBlogStats = (posts) => {
     const latest = posts[0];
 
     return `
@@ -463,7 +452,6 @@
           <span>Latest</span>
         </a>
       ` : ""}
-      ${topTags}
     `;
   };
 
@@ -474,46 +462,38 @@
       counts.set(post.date, (counts.get(post.date) || 0) + 1);
     });
 
-    const entries = Array.from(counts.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12);
+    const entries = Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
 
     if (!entries.length) {
       return '<div class="empty-state">No post dates yet.</div>';
     }
 
-    const width = 420;
-    const height = 150;
-    const paddingX = 18;
-    const paddingBottom = 30;
-    const paddingTop = 14;
-    const innerHeight = height - paddingTop - paddingBottom;
+    const sortedDates = entries.map(([date]) => date);
+    const latestDate = new Date(`${sortedDates[sortedDates.length - 1]}T00:00:00`);
+    const startDate = new Date(latestDate);
+    startDate.setDate(startDate.getDate() - 69);
     const maxCount = Math.max(...entries.map(([, count]) => count));
-    const gap = 7;
-    const barWidth = Math.max(12, (width - paddingX * 2 - gap * (entries.length - 1)) / entries.length);
+    const cells = [];
 
-    const bars = entries
-      .map(([date, count], index) => {
-        const barHeight = Math.max(10, (count / maxCount) * innerHeight);
-        const x = paddingX + index * (barWidth + gap);
-        const y = paddingTop + innerHeight - barHeight;
-        const label = date.slice(5).replace("-", "/");
-        return `
-          <g>
-            <rect class="frequency-bar" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" rx="5">
-              <title>${escapeHtml(date)} · ${count} posts</title>
-            </rect>
-            <text x="${(x + barWidth / 2).toFixed(2)}" y="${height - 9}" text-anchor="middle">${escapeHtml(label)}</text>
-          </g>
-        `;
-      })
-      .join("");
+    for (let offset = 0; offset < 70; offset += 1) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + offset);
+      const iso = date.toISOString().slice(0, 10);
+      const count = counts.get(iso) || 0;
+      const level = count === 0 ? 0 : Math.max(1, Math.ceil((count / maxCount) * 4));
+      cells.push(`
+        <span
+          class="frequency-cell level-${level}"
+          title="${escapeHtml(iso)} · ${count} posts"
+          aria-label="${escapeHtml(iso)} · ${count} posts"
+        ></span>
+      `);
+    }
 
     return `
-      <svg class="frequency-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Post frequency by date">
-        <line class="frequency-axis" x1="${paddingX}" y1="${height - paddingBottom}" x2="${width - paddingX}" y2="${height - paddingBottom}" />
-        ${bars}
-      </svg>
+      <div class="frequency-heatmap" role="img" aria-label="Post frequency heatmap">
+        ${cells.join("")}
+      </div>
     `;
   };
 
@@ -720,10 +700,11 @@
 
     svg.addEventListener("pointerdown", (event) => {
       if (!event.target.classList.contains("tag-pan-layer")) return;
-      const point = getPoint(event);
       panning = {
-        startX: point.x,
-        startY: point.y,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        viewHeight: view.height,
+        viewWidth: view.width,
         viewX: view.x,
         viewY: view.y
       };
@@ -733,9 +714,11 @@
     svg.addEventListener("pointermove", (event) => {
       if (!panning) return;
       event.preventDefault();
-      const point = getPoint(event);
-      view.x = panning.viewX - (point.x - panning.startX);
-      view.y = panning.viewY - (point.y - panning.startY);
+      const rect = svg.getBoundingClientRect();
+      const dx = ((event.clientX - panning.clientX) / rect.width) * panning.viewWidth;
+      const dy = ((event.clientY - panning.clientY) / rect.height) * panning.viewHeight;
+      view.x = panning.viewX - dx;
+      view.y = panning.viewY - dy;
       setViewBox();
     });
 

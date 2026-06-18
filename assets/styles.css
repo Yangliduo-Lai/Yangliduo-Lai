@@ -664,32 +664,48 @@ h3 {
 }
 
 .blog-frequency {
-  min-height: 168px;
+  min-height: 124px;
 }
 
-.frequency-chart {
+.frequency-heatmap {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 13px);
+  gap: 5px;
+  align-content: start;
+  justify-content: start;
   width: 100%;
-  min-height: 164px;
+  overflow: hidden;
 }
 
-.frequency-axis {
-  stroke: color-mix(in srgb, var(--line) 80%, var(--ink));
-  stroke-width: 1;
+.frequency-cell {
+  width: 13px;
+  height: 13px;
+  background: color-mix(in srgb, var(--line) 46%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  border-radius: 3px;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
 }
 
-.frequency-bar {
-  fill: color-mix(in srgb, var(--gold) 72%, var(--surface-strong));
-  transition: fill 160ms ease, opacity 160ms ease;
+.frequency-cell:hover {
+  transform: translateY(-1px);
+  border-color: var(--ink);
 }
 
-.frequency-bar:hover {
-  fill: var(--coral);
+.frequency-cell.level-1 {
+  background: color-mix(in srgb, var(--teal) 26%, var(--surface-strong));
 }
 
-.frequency-chart text {
-  fill: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 720;
+.frequency-cell.level-2 {
+  background: color-mix(in srgb, var(--teal) 48%, var(--surface-strong));
+}
+
+.frequency-cell.level-3 {
+  background: color-mix(in srgb, var(--teal) 70%, var(--surface-strong));
+}
+
+.frequency-cell.level-4 {
+  background: var(--teal-dark);
 }
 
 .tag-graph-actions {
