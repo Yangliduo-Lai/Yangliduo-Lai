@@ -6,7 +6,7 @@
     <meta name="description" content="Yangliduo Lai 的博客。" />
     <title>Blog | Yangliduo Lai</title>
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-draggable-tags" defer></script>
+    <script src="assets/script.js?v=20260618-blogs-pagination" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -26,8 +26,7 @@
 
       <main class="content-wrap">
         <section class="blog-heading">
-          <p class="eyebrow">Blog</p>
-          <h1>Writing</h1>
+          <h1>Blogs</h1>
         </section>
 
         <section class="tag-graph-card" aria-label="Filter posts by tag graph">
@@ -38,8 +37,11 @@
           <div class="tag-graph" data-tag-graph></div>
         </section>
 
-        <div class="filter-status" data-filter-status></div>
-        <section class="blog-list" data-blog-list aria-label="Blog posts"></section>
+        <section class="posts-area" aria-label="Blog posts">
+          <div class="filter-status" data-filter-status></div>
+          <section class="blog-list" data-blog-list></section>
+          <nav class="pagination" data-pagination aria-label="Blog pagination"></nav>
+        </section>
       </main>
 
       <footer class="site-footer">

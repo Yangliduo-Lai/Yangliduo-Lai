@@ -1,4 +1,5 @@
 (function () {
+  const POSTS_PER_PAGE = 6;
   const canvas = document.querySelector("[data-graph-canvas]");
   const ctx = canvas ? canvas.getContext("2d") : null;
 
@@ -199,6 +200,14 @@
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   };
 
+  const getBlogUrl = ({ tag, page } = {}) => {
+    const params = new URLSearchParams();
+    if (tag) params.set("tag", tag);
+    if (page && page > 1) params.set("page", String(page));
+    const query = params.toString();
+    return query ? `blog.html?${query}` : "blog.html";
+  };
+
   const getTagNetwork = (posts) => {
     const counts = new Map();
     const edges = new Map();
@@ -234,12 +243,12 @@
       return '<div class="empty-state">还没有可以展示的 tag。</div>';
     }
 
-    const width = 640;
-    const height = 320;
+    const width = 960;
+    const height = 360;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radiusX = nodes.length <= 2 ? 150 : 220;
-    const radiusY = nodes.length <= 2 ? 72 : 112;
+    const radiusX = nodes.length <= 2 ? 240 : 340;
+    const radiusY = nodes.length <= 2 ? 82 : 126;
     const maxCount = Math.max(...nodes.map((node) => node.count));
     const maxEdgeCount = Math.max(1, ...edges.map((edge) => edge.count));
     const positions = new Map();
@@ -280,7 +289,7 @@
         const active = node.tag === currentTag;
         const labelY = point.y + point.size + 18;
         return `
-          <a class="tag-node-link" href="blog.html?tag=${encodeURIComponent(node.tag)}" data-tag="${escapeHtml(node.tag)}">
+          <a class="tag-node-link" href="${getBlogUrl({ tag: node.tag })}" data-tag="${escapeHtml(node.tag)}">
             <g class="tag-node${active ? " is-active" : ""}" data-tag="${escapeHtml(node.tag)}" transform="translate(${point.x} ${point.y})">
               <circle r="${point.size.toFixed(2)}"></circle>
               <text class="tag-node-count" y="5">${node.count}</text>
@@ -308,12 +317,19 @@
 
     try {
       const posts = await loadPosts();
-      const currentTag = new URLSearchParams(window.location.search).get("tag");
+      const params = new URLSearchParams(window.location.search);
+      const currentTag = params.get("tag");
+      const requestedPage = Math.max(1, Number(params.get("page")) || 1);
       const tagMount = document.querySelector("[data-tag-graph]");
       const statusMount = document.querySelector("[data-filter-status]");
+      const paginationMount = document.querySelector("[data-pagination]");
       const filteredPosts = currentTag
         ? posts.filter((post) => (post.tags || []).includes(currentTag))
         : posts;
+      const pageCount = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+      const currentPage = Math.min(requestedPage, pageCount);
+      const pageStart = (currentPage - 1) * POSTS_PER_PAGE;
+      const visiblePosts = filteredPosts.slice(pageStart, pageStart + POSTS_PER_PAGE);
 
       if (tagMount) {
         tagMount.innerHTML = renderTagGraph(posts, currentTag);
@@ -322,8 +338,8 @@
 
       if (statusMount) {
         statusMount.innerHTML = currentTag
-          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章 · <a href="blog.html">清除筛选</a>`
-          : `全部文章 · ${posts.length} 篇`;
+          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章 · 第 ${currentPage} / ${pageCount} 页 · <a href="blog.html">清除筛选</a>`
+          : `全部文章 · ${posts.length} 篇 · 第 ${currentPage} / ${pageCount} 页`;
       }
 
       if (!posts.length) {
@@ -333,15 +349,18 @@
 
       if (!filteredPosts.length) {
         mount.innerHTML = '<div class="empty-state">这个标签下暂时没有文章。</div>';
+        if (paginationMount) {
+          paginationMount.innerHTML = "";
+        }
         return;
       }
 
-      mount.innerHTML = filteredPosts
+      mount.innerHTML = visiblePosts
         .map((post) => {
           const postTags = (post.tags || [])
             .map(
               (tag) => `
-                <a class="tag-pill" href="blog.html?tag=${encodeURIComponent(tag)}">
+                <a class="tag-pill" href="${getBlogUrl({ tag })}">
                   ${escapeHtml(tag)}
                 </a>
               `
@@ -357,9 +376,35 @@
           `;
         })
         .join("");
+
+      if (paginationMount) {
+        paginationMount.innerHTML = renderPagination(currentTag, currentPage, pageCount);
+      }
     } catch (error) {
       mount.innerHTML = '<div class="empty-state">博客列表暂时无法加载。</div>';
     }
+  };
+
+  const renderPagination = (tag, currentPage, pageCount) => {
+    if (pageCount <= 1) return "";
+
+    const pages = Array.from({ length: pageCount }, (_, index) => index + 1)
+      .map((page) => {
+        const current = page === currentPage ? ' aria-current="page"' : "";
+        return `<a href="${getBlogUrl({ tag, page })}"${current}>${page}</a>`;
+      })
+      .join("");
+
+    const previous =
+      currentPage > 1
+        ? `<a class="pagination-step" href="${getBlogUrl({ tag, page: currentPage - 1 })}">Prev</a>`
+        : '<span class="pagination-step is-disabled">Prev</span>';
+    const next =
+      currentPage < pageCount
+        ? `<a class="pagination-step" href="${getBlogUrl({ tag, page: currentPage + 1 })}">Next</a>`
+        : '<span class="pagination-step is-disabled">Next</span>';
+
+    return `${previous}<div class="pagination-pages">${pages}</div>${next}`;
   };
 
   const enableTagDragging = (mount) => {
@@ -367,6 +412,11 @@
     if (!svg) return;
 
     let active = null;
+    const positions = new Map();
+
+    const getNode = (tag) => Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
+    const getLabel = (tag) =>
+      Array.from(svg.querySelectorAll(".tag-node-label")).find((item) => item.dataset.tag === tag);
 
     const getPoint = (event) => {
       const point = svg.createSVGPoint();
@@ -375,26 +425,64 @@
       return point.matrixTransform(svg.getScreenCTM().inverse());
     };
 
+    const readPosition = (tag) => {
+      if (positions.has(tag)) return positions.get(tag);
+      const node = getNode(tag);
+      const transform = node ? node.getAttribute("transform") || "translate(0 0)" : "translate(0 0)";
+      const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+      const position = match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
+      positions.set(tag, position);
+      return position;
+    };
+
+    svg.querySelectorAll(".tag-node").forEach((node) => {
+      readPosition(node.dataset.tag);
+    });
+
+    const clampPosition = (x, y) => {
+      const box = svg.viewBox.baseVal;
+      return {
+        x: Math.max(box.x + 56, Math.min(box.x + box.width - 56, x)),
+        y: Math.max(box.y + 56, Math.min(box.y + box.height - 72, y))
+      };
+    };
+
     const updateNode = (tag, x, y) => {
-      const node = Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
-      const label = Array.from(svg.querySelectorAll(".tag-node-label")).find((item) => item.dataset.tag === tag);
+      const node = getNode(tag);
+      const label = getLabel(tag);
       if (!node || !label) return;
 
+      const position = clampPosition(x, y);
       const circle = node.querySelector("circle");
       const nodeRadius = circle ? Number(circle.getAttribute("r")) : 24;
-      node.setAttribute("transform", `translate(${x} ${y})`);
-      label.setAttribute("x", x);
-      label.setAttribute("y", y + nodeRadius + 18);
+      positions.set(tag, position);
+      node.setAttribute("transform", `translate(${position.x} ${position.y})`);
+      label.setAttribute("x", position.x);
+      label.setAttribute("y", position.y + nodeRadius + 18);
 
       svg.querySelectorAll(".tag-edge").forEach((edge) => {
         if (edge.dataset.source === tag) {
-          edge.setAttribute("x1", x);
-          edge.setAttribute("y1", y);
+          edge.setAttribute("x1", position.x);
+          edge.setAttribute("y1", position.y);
         }
         if (edge.dataset.target === tag) {
-          edge.setAttribute("x2", x);
-          edge.setAttribute("y2", y);
+          edge.setAttribute("x2", position.x);
+          edge.setAttribute("y2", position.y);
         }
+      });
+    };
+
+    const nudgeNeighbors = (tag, dx, dy) => {
+      svg.querySelectorAll(".tag-edge").forEach((edge) => {
+        let neighbor = null;
+        if (edge.dataset.source === tag) neighbor = edge.dataset.target;
+        if (edge.dataset.target === tag) neighbor = edge.dataset.source;
+        if (!neighbor) return;
+
+        const width = Number(edge.getAttribute("stroke-width")) || 1;
+        const influence = Math.min(0.36, 0.08 + width / 28);
+        const current = readPosition(neighbor);
+        updateNode(neighbor, current.x + dx * influence, current.y + dy * influence);
       });
     };
 
@@ -402,15 +490,15 @@
       link.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
         const tag = link.dataset.tag;
-        const node = Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
+        const node = getNode(tag);
         if (!tag || !node) return;
 
-        const transform = node.getAttribute("transform") || "translate(0 0)";
-        const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
-        const current = match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
+        const current = readPosition(tag);
         const pointer = getPoint(event);
         active = {
           dragged: false,
+          lastX: current.x,
+          lastY: current.y,
           offsetX: pointer.x - current.x,
           offsetY: pointer.y - current.y,
           tag
@@ -424,7 +512,13 @@
         event.preventDefault();
         const pointer = getPoint(event);
         active.dragged = true;
-        updateNode(active.tag, pointer.x - active.offsetX, pointer.y - active.offsetY);
+        const next = clampPosition(pointer.x - active.offsetX, pointer.y - active.offsetY);
+        const dx = next.x - active.lastX;
+        const dy = next.y - active.lastY;
+        updateNode(active.tag, next.x, next.y);
+        nudgeNeighbors(active.tag, dx, dy);
+        active.lastX = next.x;
+        active.lastY = next.y;
       });
 
       link.addEventListener("pointerup", (event) => {
@@ -436,6 +530,10 @@
             delete link.dataset.dragged;
           }, 200);
         }
+        active = null;
+      });
+
+      link.addEventListener("pointercancel", () => {
         active = null;
       });
 

@@ -420,21 +420,21 @@ h3 {
 }
 
 .content-wrap {
-  padding: clamp(56px, 9vw, 110px) 0;
+  padding: clamp(42px, 7vw, 82px) 0;
 }
 
 .blog-heading {
   display: grid;
-  gap: 8px;
-  margin-bottom: 18px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .blog-heading h1 {
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-size: clamp(3rem, 7vw, 5.8rem);
 }
 
 .blog-list {
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .post-card {
@@ -487,9 +487,9 @@ h3 {
 .tag-panel,
 .tag-graph-card {
   display: grid;
-  gap: 18px;
-  margin-bottom: 24px;
-  padding: clamp(20px, 4vw, 30px);
+  gap: 14px;
+  margin-bottom: 28px;
+  padding: clamp(18px, 3vw, 26px);
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -506,7 +506,7 @@ h3 {
 
 .tag-panel-heading h2,
 .tag-graph-header h2 {
-  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
 }
 
 .tag-panel-heading p,
@@ -564,7 +564,7 @@ h3 {
 
 .tag-network {
   width: 100%;
-  min-height: 340px;
+  min-height: 360px;
   touch-action: none;
 }
 
@@ -572,6 +572,7 @@ h3 {
   stroke: color-mix(in srgb, var(--line) 72%, var(--teal));
   stroke-linecap: round;
   opacity: 0.72;
+  transition: opacity 160ms ease, stroke 160ms ease, stroke-width 160ms ease;
 }
 
 .tag-edge.is-active {
@@ -618,6 +619,7 @@ h3 {
   font-size: 0.86rem;
   font-weight: 760;
   text-anchor: middle;
+  pointer-events: none;
 }
 
 .tag-filter {
@@ -682,13 +684,59 @@ h3 {
 }
 
 .filter-status {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   color: var(--muted);
   font-weight: 720;
 }
 
 .filter-status a {
   color: var(--teal-dark);
+}
+
+.posts-area {
+  display: grid;
+  gap: 14px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.pagination a,
+.pagination span {
+  display: inline-flex;
+  min-width: 42px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 760;
+}
+
+.pagination a[aria-current="page"] {
+  color: #fffdf8;
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+}
+
+.pagination-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.pagination-step.is-disabled {
+  color: var(--muted);
+  opacity: 0.58;
 }
 
 .mini-post {
