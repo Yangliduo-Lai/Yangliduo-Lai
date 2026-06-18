@@ -312,6 +312,7 @@
         <a class="text-link" href="blog.html">All posts</a>
       </div>
       <svg class="tag-network" viewBox="0 0 ${width} ${height}" role="img" aria-label="Blog tag relationship graph">
+        <rect class="tag-pan-layer" x="0" y="0" width="${width}" height="${height}"></rect>
         <g>${edgeSvg}</g>
         <g>${nodeSvg}</g>
       </svg>
@@ -423,151 +424,29 @@
     if (!svg) return;
 
     enableTagPhysics(svg);
-    return;
-
-    let active = null;
-    const positions = new Map();
-
-    const getNode = (tag) => Array.from(svg.querySelectorAll(".tag-node")).find((item) => item.dataset.tag === tag);
-    const getLabel = (tag) =>
-      Array.from(svg.querySelectorAll(".tag-node-label")).find((item) => item.dataset.tag === tag);
-
-    const getPoint = (event) => {
-      const point = svg.createSVGPoint();
-      point.x = event.clientX;
-      point.y = event.clientY;
-      return point.matrixTransform(svg.getScreenCTM().inverse());
-    };
-
-    const readPosition = (tag) => {
-      if (positions.has(tag)) return positions.get(tag);
-      const node = getNode(tag);
-      const transform = node ? node.getAttribute("transform") || "translate(0 0)" : "translate(0 0)";
-      const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
-      const position = match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 0, y: 0 };
-      positions.set(tag, position);
-      return position;
-    };
-
-    svg.querySelectorAll(".tag-node").forEach((node) => {
-      readPosition(node.dataset.tag);
-    });
-
-    const clampPosition = (x, y) => {
-      const box = svg.viewBox.baseVal;
-      return {
-        x: Math.max(box.x + 56, Math.min(box.x + box.width - 56, x)),
-        y: Math.max(box.y + 56, Math.min(box.y + box.height - 72, y))
-      };
-    };
-
-    const updateNode = (tag, x, y) => {
-      const node = getNode(tag);
-      const label = getLabel(tag);
-      if (!node || !label) return;
-
-      const position = clampPosition(x, y);
-      const circle = node.querySelector("circle");
-      const nodeRadius = circle ? Number(circle.getAttribute("r")) : 24;
-      positions.set(tag, position);
-      node.setAttribute("transform", `translate(${position.x} ${position.y})`);
-      label.setAttribute("x", position.x);
-      label.setAttribute("y", position.y + nodeRadius + 18);
-
-      svg.querySelectorAll(".tag-edge").forEach((edge) => {
-        if (edge.dataset.source === tag) {
-          edge.setAttribute("x1", position.x);
-          edge.setAttribute("y1", position.y);
-        }
-        if (edge.dataset.target === tag) {
-          edge.setAttribute("x2", position.x);
-          edge.setAttribute("y2", position.y);
-        }
-      });
-    };
-
-    const nudgeNeighbors = (tag, dx, dy) => {
-      svg.querySelectorAll(".tag-edge").forEach((edge) => {
-        let neighbor = null;
-        if (edge.dataset.source === tag) neighbor = edge.dataset.target;
-        if (edge.dataset.target === tag) neighbor = edge.dataset.source;
-        if (!neighbor) return;
-
-        const width = Number(edge.getAttribute("stroke-width")) || 1;
-        const influence = Math.min(0.36, 0.08 + width / 28);
-        const current = readPosition(neighbor);
-        updateNode(neighbor, current.x + dx * influence, current.y + dy * influence);
-      });
-    };
-
-    svg.querySelectorAll(".tag-node-link").forEach((link) => {
-      link.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0) return;
-        const tag = link.dataset.tag;
-        const node = getNode(tag);
-        if (!tag || !node) return;
-
-        const current = readPosition(tag);
-        const pointer = getPoint(event);
-        active = {
-          dragged: false,
-          lastX: current.x,
-          lastY: current.y,
-          offsetX: pointer.x - current.x,
-          offsetY: pointer.y - current.y,
-          tag
-        };
-
-        link.setPointerCapture(event.pointerId);
-      });
-
-      link.addEventListener("pointermove", (event) => {
-        if (!active || active.tag !== link.dataset.tag) return;
-        event.preventDefault();
-        const pointer = getPoint(event);
-        active.dragged = true;
-        const next = clampPosition(pointer.x - active.offsetX, pointer.y - active.offsetY);
-        const dx = next.x - active.lastX;
-        const dy = next.y - active.lastY;
-        updateNode(active.tag, next.x, next.y);
-        nudgeNeighbors(active.tag, dx, dy);
-        active.lastX = next.x;
-        active.lastY = next.y;
-      });
-
-      link.addEventListener("pointerup", (event) => {
-        if (!active || active.tag !== link.dataset.tag) return;
-        if (active.dragged) {
-          event.preventDefault();
-          link.dataset.dragged = "true";
-          window.setTimeout(() => {
-            delete link.dataset.dragged;
-          }, 200);
-        }
-        active = null;
-      });
-
-      link.addEventListener("pointercancel", () => {
-        active = null;
-      });
-
-      link.addEventListener("click", (event) => {
-        if (link.dataset.dragged === "true") {
-          event.preventDefault();
-        }
-      });
-    });
   };
 
   const enableTagPhysics = (svg) => {
-    const box = svg.viewBox.baseVal;
-    const centerX = box.x + box.width / 2;
-    const centerY = box.y + box.height / 2;
+    const initialBox = svg.viewBox.baseVal;
+    const bounds = {
+      height: initialBox.height,
+      width: initialBox.width,
+      x: initialBox.x,
+      y: initialBox.y
+    };
+    const view = { ...bounds };
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
     const nodeElements = new Map();
     const labelElements = new Map();
     let draggedNode = null;
+    let panning = null;
     let suppressClickUntil = 0;
     let frameId = null;
+
+    const setViewBox = () => {
+      svg.setAttribute("viewBox", `${view.x} ${view.y} ${view.width} ${view.height}`);
+    };
 
     const nodes = Array.from(svg.querySelectorAll(".tag-node")).map((node) => {
       const transform = node.getAttribute("transform") || "translate(0 0)";
@@ -600,8 +479,8 @@
       .filter((link) => link.source && link.target);
 
     const clamp = (node) => {
-      node.x = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, node.x));
-      node.y = Math.max(box.y + node.radius + 12, Math.min(box.y + box.height - node.radius - 30, node.y));
+      node.x = Math.max(bounds.x + node.radius + 12, Math.min(bounds.x + bounds.width - node.radius - 12, node.x));
+      node.y = Math.max(bounds.y + node.radius + 12, Math.min(bounds.y + bounds.height - node.radius - 30, node.y));
     };
 
     const render = () => {
@@ -699,6 +578,54 @@
         frameId = window.requestAnimationFrame(step);
       }
     };
+
+    svg.addEventListener(
+      "wheel",
+      (event) => {
+        event.preventDefault();
+        const point = getPoint(event);
+        const factor = event.deltaY < 0 ? 0.88 : 1.12;
+        const nextWidth = Math.max(bounds.width * 0.45, Math.min(bounds.width * 1.75, view.width * factor));
+        const nextHeight = Math.max(bounds.height * 0.45, Math.min(bounds.height * 1.75, view.height * factor));
+        const ratioX = (point.x - view.x) / view.width;
+        const ratioY = (point.y - view.y) / view.height;
+        view.x = point.x - nextWidth * ratioX;
+        view.y = point.y - nextHeight * ratioY;
+        view.width = nextWidth;
+        view.height = nextHeight;
+        setViewBox();
+      },
+      { passive: false }
+    );
+
+    svg.addEventListener("pointerdown", (event) => {
+      if (!event.target.classList.contains("tag-pan-layer")) return;
+      const point = getPoint(event);
+      panning = {
+        startX: point.x,
+        startY: point.y,
+        viewX: view.x,
+        viewY: view.y
+      };
+      svg.setPointerCapture(event.pointerId);
+    });
+
+    svg.addEventListener("pointermove", (event) => {
+      if (!panning) return;
+      event.preventDefault();
+      const point = getPoint(event);
+      view.x = panning.viewX - (point.x - panning.startX);
+      view.y = panning.viewY - (point.y - panning.startY);
+      setViewBox();
+    });
+
+    svg.addEventListener("pointerup", () => {
+      panning = null;
+    });
+
+    svg.addEventListener("pointercancel", () => {
+      panning = null;
+    });
 
     svg.querySelectorAll(".tag-node-link").forEach((link) => {
       const node = nodeById.get(link.dataset.tag);

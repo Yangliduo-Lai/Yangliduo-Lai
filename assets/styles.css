@@ -12,6 +12,7 @@
   --gold: #b88420;
   --blue: #315f8a;
   --shadow: 0 18px 44px rgba(32, 36, 42, 0.12);
+  --blog-panel-min-height: 560px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -499,6 +500,7 @@ h3 {
   position: sticky;
   top: 24px;
   align-self: start;
+  min-height: var(--blog-panel-min-height);
 }
 
 .tag-panel-heading,
@@ -560,6 +562,7 @@ h3 {
 .tag-graph {
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
 .tag-graph-actions {
@@ -571,6 +574,15 @@ h3 {
   width: 100%;
   min-height: 420px;
   touch-action: none;
+}
+
+.tag-pan-layer {
+  fill: transparent;
+  cursor: grab;
+}
+
+.tag-pan-layer:active {
+  cursor: grabbing;
 }
 
 .tag-edge {
@@ -693,7 +705,7 @@ h3 {
 }
 
 .filter-status {
-  margin-bottom: 14px;
+  margin: 0;
   color: var(--muted);
   font-weight: 720;
 }
@@ -705,6 +717,8 @@ h3 {
 .posts-area {
   display: grid;
   gap: 14px;
+  align-content: start;
+  min-height: var(--blog-panel-min-height);
 }
 
 .blog-layout {
@@ -712,6 +726,16 @@ h3 {
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
   gap: 18px;
   align-items: start;
+}
+
+.blog-layout-status {
+  width: max-content;
+  max-width: 100%;
+  margin-top: 14px;
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 
 .pagination {
@@ -905,10 +929,15 @@ h3 {
   .tag-graph-card {
     position: relative;
     top: auto;
+    min-height: auto;
   }
 }
 
 @media (max-width: 760px) {
+  :root {
+    --blog-panel-min-height: 0px;
+  }
+
   .blog-layout {
     grid-template-columns: 1fr;
   }
