@@ -6,7 +6,7 @@
     <meta name="description" content="Yangliduo Lai 的博客。" />
     <title>Blog | Yangliduo Lai</title>
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-blog-tags" defer></script>
+    <script src="assets/script.js?v=20260618-tag-graph" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -25,21 +25,23 @@
       </header>
 
       <main class="content-wrap">
-        <section class="page-heading">
-          <p class="eyebrow">Blog</p>
-          <h1>Writing</h1>
-          <p>这里集中放博客文章。内容准备好之后，会按时间倒序显示。</p>
-        </section>
-
-        <section class="tag-panel" aria-label="Filter posts by tag">
-          <div class="tag-panel-heading">
-            <span class="tag-icon" aria-hidden="true"></span>
-            <div>
-              <h2>Tags</h2>
-              <p>标签越大，说明对应文章越多。点击标签可以筛选文章。</p>
-            </div>
+        <section class="blog-overview">
+          <div class="page-heading compact-heading">
+            <p class="eyebrow">Blog</p>
+            <h1>Writing</h1>
+            <p>这里集中放博客文章。左侧是文章，右侧是标签关系图，可以按 tag 检索。</p>
           </div>
-          <div class="tag-cloud" data-tag-cloud></div>
+
+          <section class="tag-graph-card" aria-label="Filter posts by tag graph">
+            <div class="tag-graph-header">
+              <span class="tag-icon" aria-hidden="true"></span>
+              <div>
+                <h2>Tag Map</h2>
+                <p>节点越大文章越多；连线越粗，共现越多。点击节点筛选。</p>
+              </div>
+            </div>
+            <div class="tag-graph" data-tag-graph></div>
+          </section>
         </section>
 
         <div class="filter-status" data-filter-status></div>

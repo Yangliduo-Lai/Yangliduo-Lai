@@ -7,7 +7,7 @@
     <title>Yangliduo Lai</title>
     <link rel="preconnect" href="https://github.com" />
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-blog-tags" defer></script>
+    <script src="assets/script.js?v=20260618-tag-graph" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -19,8 +19,9 @@
           <span>Yangliduo Lai</span>
         </a>
         <nav class="site-nav" aria-label="Primary navigation">
+          <a href="#overview">Overview</a>
+          <a href="#writing">Writing</a>
           <a href="#news">News</a>
-          <a href="#background">Background</a>
           <a href="#education">Education</a>
           <a href="#research">Research</a>
           <a href="blog.html">Blog</a>
@@ -29,50 +30,93 @@
 
       <main>
         <section class="home-hero" aria-label="Personal homepage introduction">
-          <div class="hero-copy">
-            <p class="eyebrow">Personal Website</p>
-            <h1>Yangliduo Lai</h1>
-            <p class="hero-lede">
-              This homepage is being built. The sections below are placeholders for education,
-              research, news, background, writing, and future updates.
-            </p>
-            <div class="hero-blog-panel">
-              <div class="hero-blog-heading">
-                <span>Recent writing</span>
-                <a href="blog.html">All posts</a>
+          <article class="profile-card">
+            <img
+              class="profile-avatar large"
+              src="https://github.com/Yangliduo-Lai.png"
+              alt="Yangliduo Lai GitHub avatar"
+              width="144"
+              height="144"
+            />
+            <div class="profile-card-copy">
+              <p class="eyebrow">Personal Website</p>
+              <h1>Yangliduo Lai</h1>
+              <p class="hero-lede">
+                This homepage is being built. The sections below are placeholders for education,
+                research, news, background, writing, and future updates.
+              </p>
+            </div>
+          </article>
+
+          <aside class="home-stack" aria-label="Homepage quick information">
+            <section class="surface-card latest-card">
+              <div class="card-heading-row">
+                <div>
+                  <p class="eyebrow">Latest Blog</p>
+                  <h2>Recent writing</h2>
+                </div>
+                <a class="text-link" href="blog.html">All posts</a>
               </div>
               <div class="home-posts compact" data-home-posts></div>
-            </div>
-          </div>
+            </section>
 
-          <aside class="profile-panel" aria-label="Profile placeholders">
-            <div class="profile-identity">
-              <img
-                class="profile-avatar"
-                src="https://github.com/Yangliduo-Lai.png"
-                alt="Yangliduo Lai GitHub avatar"
-                width="112"
-                height="112"
-              />
-              <strong>Yangliduo Lai</strong>
-            </div>
-            <div>
-              <span class="panel-label">Current status</span>
-              <strong>To be updated</strong>
-            </div>
-            <div>
-              <span class="panel-label">Affiliation</span>
-              <strong>To be updated</strong>
-            </div>
-            <div>
-              <span class="panel-label">Research interests</span>
-              <strong>To be updated</strong>
-            </div>
-            <div>
-              <span class="panel-label">Contact</span>
-              <strong>To be updated</strong>
-            </div>
+            <section class="surface-card facts-card">
+              <div>
+                <span class="panel-label">Current status</span>
+                <strong>To be updated</strong>
+              </div>
+              <div>
+                <span class="panel-label">Affiliation</span>
+                <strong>To be updated</strong>
+              </div>
+              <div>
+                <span class="panel-label">Research interests</span>
+                <strong>To be updated</strong>
+              </div>
+              <div>
+                <span class="panel-label">Contact</span>
+                <strong>To be updated</strong>
+              </div>
+            </section>
           </aside>
+        </section>
+
+        <section class="section" id="overview">
+          <div class="section-heading">
+            <p class="eyebrow">Overview</p>
+            <h2>Profile</h2>
+          </div>
+          <div class="info-grid">
+            <article class="info-card">
+              <h3>Education</h3>
+              <p>To be updated with program, institution, advisor, or academic path.</p>
+            </article>
+            <article class="info-card">
+              <h3>Research</h3>
+              <p>To be updated with current research questions, projects, and publications.</p>
+            </article>
+            <article class="info-card">
+              <h3>News</h3>
+              <p>To be updated with recent awards, talks, releases, or milestones.</p>
+            </article>
+            <article class="info-card">
+              <h3>Background</h3>
+              <p>To be updated with academic and technical background.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section two-column" id="writing">
+          <div class="section-heading">
+            <p class="eyebrow">Writing</p>
+            <h2>Blog</h2>
+            <p>Recent titles are shown on the first screen. Open the blog page for tag search and full entries.</p>
+            <a class="text-link" href="blog.html">Open all posts</a>
+          </div>
+          <article class="info-card">
+            <h3>Writing Placeholder</h3>
+            <p>To be updated with writing themes, reading notes, project reflections, and longer essays.</p>
+          </article>
         </section>
 
         <section class="section" id="news">
@@ -173,18 +217,6 @@
               <p>Short description of topics currently being studied or explored.</p>
             </article>
           </div>
-        </section>
-
-        <section class="section two-column" id="writing">
-          <div class="section-heading">
-            <p class="eyebrow">Writing</p>
-            <h2>Blog</h2>
-            <p>
-              A place for notes, reading logs, project reflections, and longer thoughts.
-            </p>
-            <a class="text-link" href="blog.html">Open all posts</a>
-          </div>
-          <div class="home-posts" data-home-posts-secondary></div>
         </section>
       </main>
 

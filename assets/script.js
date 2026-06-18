@@ -88,7 +88,7 @@
   };
 
   const escapeHtml = (value) =>
-    value.replace(/[&<>"']/g, (char) => {
+    String(value ?? "").replace(/[&<>"']/g, (char) => {
       const chars = {
         "&": "&amp;",
         "<": "&lt;",
@@ -199,40 +199,104 @@
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   };
 
-  const getTagCounts = (posts) => {
+  const getTagNetwork = (posts) => {
     const counts = new Map();
+    const edges = new Map();
+
     posts.forEach((post) => {
-      (post.tags || []).forEach((tag) => {
+      const uniqueTags = Array.from(new Set(post.tags || [])).sort();
+      uniqueTags.forEach((tag) => {
         counts.set(tag, (counts.get(tag) || 0) + 1);
       });
+
+      uniqueTags.forEach((source, sourceIndex) => {
+        uniqueTags.slice(sourceIndex + 1).forEach((target) => {
+          const key = `${source}|||${target}`;
+          edges.set(key, (edges.get(key) || 0) + 1);
+        });
+      });
     });
-    return Array.from(counts.entries())
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+
+    return {
+      nodes: Array.from(counts.entries())
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag)),
+      edges: Array.from(edges.entries()).map(([key, count]) => {
+        const [source, target] = key.split("|||");
+        return { source, target, count };
+      })
+    };
   };
 
-  const renderTags = (tags, currentTag, totalCount) => {
-    if (!tags.length) return "";
-    const maxCount = Math.max(...tags.map((item) => item.count));
-    const tagLinks = tags
-      .map(({ tag, count }) => {
-        const level = maxCount === 1 ? 1 : Math.round(1 + ((count - 1) / (maxCount - 1)) * 2);
-        const active = tag === currentTag ? ' aria-current="true"' : "";
+  const renderTagGraph = (posts, currentTag) => {
+    const { nodes, edges } = getTagNetwork(posts);
+    if (!nodes.length) {
+      return '<div class="empty-state">还没有可以展示的 tag。</div>';
+    }
+
+    const width = 640;
+    const height = 320;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radiusX = nodes.length <= 2 ? 150 : 220;
+    const radiusY = nodes.length <= 2 ? 72 : 112;
+    const maxCount = Math.max(...nodes.map((node) => node.count));
+    const maxEdgeCount = Math.max(1, ...edges.map((edge) => edge.count));
+    const positions = new Map();
+
+    nodes.forEach((node, index) => {
+      const angle = nodes.length === 1 ? -Math.PI / 2 : -Math.PI / 2 + (index / nodes.length) * Math.PI * 2;
+      const x = nodes.length === 1 ? centerX : centerX + Math.cos(angle) * radiusX;
+      const y = nodes.length === 1 ? centerY : centerY + Math.sin(angle) * radiusY;
+      const size = 20 + (node.count / maxCount) * 24;
+      positions.set(node.tag, { ...node, x, y, size });
+    });
+
+    const edgeSvg = edges
+      .map((edge) => {
+        const source = positions.get(edge.source);
+        const target = positions.get(edge.target);
+        if (!source || !target) return "";
+        const active = currentTag && (edge.source === currentTag || edge.target === currentTag);
+        const widthValue = 1.2 + (edge.count / maxEdgeCount) * 5;
         return `
-          <a class="tag-filter tag-level-${level}" href="blog.html?tag=${encodeURIComponent(tag)}"${active}>
-            <span class="tag-name">${escapeHtml(tag)}</span>
-            <span class="tag-count">${count}</span>
+          <line
+            class="tag-edge${active ? " is-active" : ""}"
+            x1="${source.x}"
+            y1="${source.y}"
+            x2="${target.x}"
+            y2="${target.y}"
+            stroke-width="${widthValue.toFixed(2)}"
+          />
+        `;
+      })
+      .join("");
+
+    const nodeSvg = nodes
+      .map((node) => {
+        const point = positions.get(node.tag);
+        const active = node.tag === currentTag;
+        const labelY = point.y + point.size + 18;
+        return `
+          <a class="tag-node-link" href="blog.html?tag=${encodeURIComponent(node.tag)}">
+            <g class="tag-node${active ? " is-active" : ""}" transform="translate(${point.x} ${point.y})">
+              <circle r="${point.size.toFixed(2)}"></circle>
+              <text class="tag-node-count" y="5">${node.count}</text>
+            </g>
+            <text class="tag-node-label" x="${point.x}" y="${labelY}">${escapeHtml(node.tag)}</text>
           </a>
         `;
       })
       .join("");
 
     return `
-      <a class="tag-filter all-tags" href="blog.html"${currentTag ? "" : ' aria-current="true"'}>
-        <span class="tag-name">All</span>
-        <span class="tag-count">${totalCount}</span>
-      </a>
-      ${tagLinks}
+      <div class="tag-graph-actions">
+        <a class="text-link" href="blog.html">All posts</a>
+      </div>
+      <svg class="tag-network" viewBox="0 0 ${width} ${height}" role="img" aria-label="Blog tag relationship graph">
+        <g>${edgeSvg}</g>
+        <g>${nodeSvg}</g>
+      </svg>
     `;
   };
 
@@ -243,20 +307,19 @@
     try {
       const posts = await loadPosts();
       const currentTag = new URLSearchParams(window.location.search).get("tag");
-      const tags = getTagCounts(posts);
-      const tagMount = document.querySelector("[data-tag-cloud]");
+      const tagMount = document.querySelector("[data-tag-graph]");
       const statusMount = document.querySelector("[data-filter-status]");
       const filteredPosts = currentTag
         ? posts.filter((post) => (post.tags || []).includes(currentTag))
         : posts;
 
       if (tagMount) {
-        tagMount.innerHTML = renderTags(tags, currentTag, posts.length);
+        tagMount.innerHTML = renderTagGraph(posts, currentTag);
       }
 
       if (statusMount) {
         statusMount.innerHTML = currentTag
-          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章`
+          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章 · <a href="blog.html">清除筛选</a>`
           : `全部文章 · ${posts.length} 篇`;
       }
 
@@ -354,6 +417,7 @@
     try {
       const posts = await loadPosts();
       const html = posts
+        .slice(0, 4)
         .map(
           (post) => `
             <a class="mini-post" href="post.html?slug=${encodeURIComponent(post.slug)}">
