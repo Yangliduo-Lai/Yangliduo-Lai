@@ -199,27 +199,95 @@
       .sort((a, b) => (a.date < b.date ? 1 : -1));
   };
 
+  const getTagCounts = (posts) => {
+    const counts = new Map();
+    posts.forEach((post) => {
+      (post.tags || []).forEach((tag) => {
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      });
+    });
+    return Array.from(counts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+  };
+
+  const renderTags = (tags, currentTag, totalCount) => {
+    if (!tags.length) return "";
+    const maxCount = Math.max(...tags.map((item) => item.count));
+    const tagLinks = tags
+      .map(({ tag, count }) => {
+        const level = maxCount === 1 ? 1 : Math.round(1 + ((count - 1) / (maxCount - 1)) * 2);
+        const active = tag === currentTag ? ' aria-current="true"' : "";
+        return `
+          <a class="tag-filter tag-level-${level}" href="blog.html?tag=${encodeURIComponent(tag)}"${active}>
+            <span class="tag-name">${escapeHtml(tag)}</span>
+            <span class="tag-count">${count}</span>
+          </a>
+        `;
+      })
+      .join("");
+
+    return `
+      <a class="tag-filter all-tags" href="blog.html"${currentTag ? "" : ' aria-current="true"'}>
+        <span class="tag-name">All</span>
+        <span class="tag-count">${totalCount}</span>
+      </a>
+      ${tagLinks}
+    `;
+  };
+
   const renderBlogList = async () => {
     const mount = document.querySelector("[data-blog-list]");
     if (!mount) return;
 
     try {
       const posts = await loadPosts();
+      const currentTag = new URLSearchParams(window.location.search).get("tag");
+      const tags = getTagCounts(posts);
+      const tagMount = document.querySelector("[data-tag-cloud]");
+      const statusMount = document.querySelector("[data-filter-status]");
+      const filteredPosts = currentTag
+        ? posts.filter((post) => (post.tags || []).includes(currentTag))
+        : posts;
+
+      if (tagMount) {
+        tagMount.innerHTML = renderTags(tags, currentTag, posts.length);
+      }
+
+      if (statusMount) {
+        statusMount.innerHTML = currentTag
+          ? `当前筛选：<strong>${escapeHtml(currentTag)}</strong> · ${filteredPosts.length} 篇文章`
+          : `全部文章 · ${posts.length} 篇`;
+      }
+
       if (!posts.length) {
         mount.innerHTML = '<div class="empty-state">这里会放我的博客。第一篇文章准备好之后，会显示在这里。</div>';
         return;
       }
 
-      mount.innerHTML = posts
+      if (!filteredPosts.length) {
+        mount.innerHTML = '<div class="empty-state">这个标签下暂时没有文章。</div>';
+        return;
+      }
+
+      mount.innerHTML = filteredPosts
         .map((post) => {
-          const tags = (post.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+          const postTags = (post.tags || [])
+            .map(
+              (tag) => `
+                <a class="tag-pill" href="blog.html?tag=${encodeURIComponent(tag)}">
+                  ${escapeHtml(tag)}
+                </a>
+              `
+            )
+            .join("");
           return `
-            <a class="post-card" href="post.html?slug=${encodeURIComponent(post.slug)}">
+            <article class="post-card">
               <time datetime="${escapeHtml(post.date)}">${formatDate(post.date)}</time>
-              <h3>${escapeHtml(post.title)}</h3>
+              <h3><a href="post.html?slug=${encodeURIComponent(post.slug)}">${escapeHtml(post.title)}</a></h3>
               <p>${escapeHtml(post.summary || "")}</p>
-              ${tags ? `<div class="tag-row">${tags}</div>` : ""}
-            </a>
+              ${postTags ? `<div class="tag-row">${postTags}</div>` : ""}
+            </article>
           `;
         })
         .join("");
@@ -252,7 +320,15 @@
         throw new Error("Unable to load post markdown");
       }
       const markdown = await response.text();
-      const tags = (post.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("");
+      const tags = (post.tags || [])
+        .map(
+          (tag) => `
+            <a class="tag-pill" href="blog.html?tag=${encodeURIComponent(tag)}">
+              ${escapeHtml(tag)}
+            </a>
+          `
+        )
+        .join("");
 
       mount.innerHTML = `
         <a class="text-link" href="blog.html">Back to blog</a>
@@ -272,13 +348,12 @@
   };
 
   const renderHomePosts = async () => {
-    const mount = document.querySelector("[data-home-posts]");
-    if (!mount) return;
+    const mounts = Array.from(document.querySelectorAll("[data-home-posts], [data-home-posts-secondary]"));
+    if (!mounts.length) return;
 
     try {
       const posts = await loadPosts();
-      mount.innerHTML = posts
-        .slice(0, 2)
+      const html = posts
         .map(
           (post) => `
             <a class="mini-post" href="post.html?slug=${encodeURIComponent(post.slug)}">
@@ -288,8 +363,13 @@
           `
         )
         .join("");
+      mounts.forEach((mount) => {
+        mount.innerHTML = html;
+      });
     } catch (error) {
-      mount.innerHTML = '<p class="muted">博客预览暂时无法加载。</p>';
+      mounts.forEach((mount) => {
+        mount.innerHTML = '<p class="muted">博客预览暂时无法加载。</p>';
+      });
     }
   };
 
