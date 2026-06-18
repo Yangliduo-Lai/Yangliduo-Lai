@@ -410,34 +410,6 @@
     }
   };
 
-  const renderHomePosts = async () => {
-    const mounts = Array.from(document.querySelectorAll("[data-home-posts]"));
-    if (!mounts.length) return;
-
-    try {
-      const posts = await loadPosts();
-      const html = posts
-        .slice(0, 4)
-        .map(
-          (post) => `
-            <a class="mini-post" href="post.html?slug=${encodeURIComponent(post.slug)}">
-              <time datetime="${escapeHtml(post.date)}">${formatDate(post.date)}</time>
-              <span>${escapeHtml(post.title)}</span>
-            </a>
-          `
-        )
-        .join("");
-      mounts.forEach((mount) => {
-        mount.innerHTML = html;
-      });
-    } catch (error) {
-      mounts.forEach((mount) => {
-        mount.innerHTML = '<p class="muted">博客预览暂时无法加载。</p>';
-      });
-    }
-  };
-
   renderBlogList();
   renderPost();
-  renderHomePosts();
 })();
