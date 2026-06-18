@@ -422,10 +422,8 @@
     const svg = mount.querySelector(".tag-network");
     if (!svg) return;
 
-    if (window.d3) {
-      enableTagPhysics(svg);
-      return;
-    }
+    enableTagPhysics(svg);
+    return;
 
     let active = null;
     const positions = new Map();
@@ -562,111 +560,196 @@
   };
 
   const enableTagPhysics = (svg) => {
-    const d3 = window.d3;
     const box = svg.viewBox.baseVal;
     const centerX = box.x + box.width / 2;
     const centerY = box.y + box.height / 2;
-    let suppressClick = false;
+    const nodeElements = new Map();
+    const labelElements = new Map();
+    let draggedNode = null;
+    let suppressClickUntil = 0;
+    let frameId = null;
 
     const nodes = Array.from(svg.querySelectorAll(".tag-node")).map((node) => {
       const transform = node.getAttribute("transform") || "translate(0 0)";
       const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
-      return {
+      const data = {
         id: node.dataset.tag,
         count: Number(node.dataset.count || 1),
         radius: Number(node.dataset.radius || 24),
+        vx: 0,
+        vy: 0,
         x: match ? Number(match[1]) : centerX,
         y: match ? Number(match[2]) : centerY
       };
+      nodeElements.set(data.id, node);
+      return data;
     });
 
-    const links = Array.from(svg.querySelectorAll(".tag-edge")).map((edge) => ({
-      source: edge.dataset.source,
-      target: edge.dataset.target,
-      count: Number(edge.dataset.count || 1)
-    }));
+    svg.querySelectorAll(".tag-node-label").forEach((label) => {
+      labelElements.set(label.dataset.tag, label);
+    });
 
-    const linkSelection = d3.select(svg).selectAll(".tag-edge").data(links);
-    const nodeSelection = d3.select(svg).selectAll(".tag-node-link").data(nodes);
-    const labelSelection = d3.select(svg).selectAll(".tag-node-label").data(nodes);
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const links = Array.from(svg.querySelectorAll(".tag-edge"))
+      .map((edge) => ({
+        element: edge,
+        source: nodeById.get(edge.dataset.source),
+        target: nodeById.get(edge.dataset.target),
+        count: Number(edge.dataset.count || 1)
+      }))
+      .filter((link) => link.source && link.target);
 
     const clamp = (node) => {
       node.x = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, node.x));
       node.y = Math.max(box.y + node.radius + 12, Math.min(box.y + box.height - node.radius - 30, node.y));
     };
 
-    const simulation = d3
-      .forceSimulation(nodes)
-      .force(
-        "link",
-        d3
-          .forceLink(links)
-          .id((node) => node.id)
-          .distance((link) => Math.max(90, 160 - link.count * 18))
-          .strength((link) => Math.min(0.42, 0.12 + link.count * 0.1))
-      )
-      .force("charge", d3.forceManyBody().strength(-260))
-      .force("collide", d3.forceCollide((node) => node.radius + 22).iterations(2))
-      .force("center", d3.forceCenter(centerX, centerY))
-      .force("x", d3.forceX(centerX).strength(0.035))
-      .force("y", d3.forceY(centerY).strength(0.04))
-      .alpha(0.8)
-      .alphaDecay(0.035);
-
-    const ticked = () => {
+    const render = () => {
       nodes.forEach(clamp);
 
-      linkSelection
-        .attr("x1", (link) => link.source.x)
-        .attr("y1", (link) => link.source.y)
-        .attr("x2", (link) => link.target.x)
-        .attr("y2", (link) => link.target.y);
-
-      nodeSelection.select(".tag-node").attr("transform", (node) => `translate(${node.x} ${node.y})`);
-
-      labelSelection
-        .attr("x", (node) => node.x)
-        .attr("y", (node) => node.y + node.radius + 18);
-    };
-
-    simulation.on("tick", ticked);
-
-    const drag = d3
-      .drag()
-      .on("start", (event, node) => {
-        suppressClick = false;
-        if (!event.active) simulation.alphaTarget(0.35).restart();
-        node.fx = node.x;
-        node.fy = node.y;
-        node._startX = event.x;
-        node._startY = event.y;
-      })
-      .on("drag", (event, node) => {
-        if (Math.hypot(event.x - node._startX, event.y - node._startY) > 3) {
-          suppressClick = true;
-        }
-        node.fx = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, event.x));
-        node.fy = Math.max(box.y + node.radius + 12, Math.min(box.y + box.height - node.radius - 30, event.y));
-        simulation.alpha(0.45).restart();
-      })
-      .on("end", (event, node) => {
-        if (!event.active) simulation.alphaTarget(0);
-        node.fx = null;
-        node.fy = null;
-        window.setTimeout(() => {
-          suppressClick = false;
-        }, 180);
+      links.forEach((link) => {
+        link.element.setAttribute("x1", link.source.x);
+        link.element.setAttribute("y1", link.source.y);
+        link.element.setAttribute("x2", link.target.x);
+        link.element.setAttribute("y2", link.target.y);
       });
 
-    nodeSelection.call(drag).on("click", (event, node) => {
-      if (suppressClick) {
-        event.preventDefault();
-        return;
+      nodes.forEach((node) => {
+        const nodeElement = nodeElements.get(node.id);
+        const labelElement = labelElements.get(node.id);
+        if (nodeElement) {
+          nodeElement.setAttribute("transform", `translate(${node.x} ${node.y})`);
+        }
+        if (labelElement) {
+          labelElement.setAttribute("x", node.x);
+          labelElement.setAttribute("y", node.y + node.radius + 18);
+        }
+      });
+    };
+
+    const step = () => {
+      links.forEach((link) => {
+        const dx = link.target.x - link.source.x;
+        const dy = link.target.y - link.source.y;
+        const distance = Math.max(1, Math.hypot(dx, dy));
+        const desired = Math.max(92, 158 - link.count * 18);
+        const strength = 0.0028 + link.count * 0.0012;
+        const force = (distance - desired) * strength;
+        const fx = (dx / distance) * force;
+        const fy = (dy / distance) * force;
+
+        if (link.source !== draggedNode) {
+          link.source.vx += fx;
+          link.source.vy += fy;
+        }
+        if (link.target !== draggedNode) {
+          link.target.vx -= fx;
+          link.target.vy -= fy;
+        }
+      });
+
+      for (let i = 0; i < nodes.length; i += 1) {
+        for (let j = i + 1; j < nodes.length; j += 1) {
+          const a = nodes[i];
+          const b = nodes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distance = Math.max(1, Math.hypot(dx, dy));
+          const minimum = a.radius + b.radius + 30;
+          const push = Math.max(0, minimum - distance) * 0.018 + 52 / (distance * distance);
+          const fx = (dx / distance) * push;
+          const fy = (dy / distance) * push;
+
+          if (a !== draggedNode) {
+            a.vx -= fx;
+            a.vy -= fy;
+          }
+          if (b !== draggedNode) {
+            b.vx += fx;
+            b.vy += fy;
+          }
+        }
       }
-      if (!node || !node.id) {
-        event.preventDefault();
+
+      nodes.forEach((node) => {
+        if (node !== draggedNode) {
+          node.vx += (centerX - node.x) * 0.0018;
+          node.vy += (centerY - node.y) * 0.002;
+          node.vx *= 0.88;
+          node.vy *= 0.88;
+          node.x += node.vx;
+          node.y += node.vy;
+        }
+        clamp(node);
+      });
+
+      render();
+      frameId = window.requestAnimationFrame(step);
+    };
+
+    const getPoint = (event) => {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    };
+
+    const start = () => {
+      if (!frameId) {
+        frameId = window.requestAnimationFrame(step);
       }
+    };
+
+    svg.querySelectorAll(".tag-node-link").forEach((link) => {
+      const node = nodeById.get(link.dataset.tag);
+      if (!node) return;
+
+      link.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        const point = getPoint(event);
+        draggedNode = node;
+        node.dragStartX = point.x;
+        node.dragStartY = point.y;
+        node.dragOffsetX = point.x - node.x;
+        node.dragOffsetY = point.y - node.y;
+        node.vx = 0;
+        node.vy = 0;
+        link.setPointerCapture(event.pointerId);
+        start();
+      });
+
+      link.addEventListener("pointermove", (event) => {
+        if (draggedNode !== node) return;
+        event.preventDefault();
+        const point = getPoint(event);
+        node.x = point.x - node.dragOffsetX;
+        node.y = point.y - node.dragOffsetY;
+        clamp(node);
+        node.vx = 0;
+        node.vy = 0;
+        if (Math.hypot(point.x - node.dragStartX, point.y - node.dragStartY) > 4) {
+          suppressClickUntil = Date.now() + 220;
+        }
+        render();
+      });
+
+      link.addEventListener("pointerup", () => {
+        draggedNode = null;
+      });
+
+      link.addEventListener("pointercancel", () => {
+        draggedNode = null;
+      });
+
+      link.addEventListener("click", (event) => {
+        if (Date.now() < suppressClickUntil) {
+          event.preventDefault();
+        }
+      });
     });
+
+    render();
+    start();
   };
 
   const renderPost = async () => {
