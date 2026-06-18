@@ -1,5 +1,13 @@
 [
   {
+    "slug": "my-first-post",
+    "title": "从协同过滤到图推荐：推荐系统到底在优化什么？",
+    "date": "2026-06-18",
+    "summary": "",
+    "tags": ["recommendation"],
+    "file": "data/posts/2026-06-18-my-first-post.md"
+  },
+  {
     "slug": "demo-research-note",
     "title": "示例博客：一条研究笔记可以怎么写？",
     "date": "2026-06-26",
@@ -62,13 +70,5 @@
     "summary": "第二篇演示博客，用来展示多篇文章在博客列表中的排列方式。",
     "tags": ["demo", "personal", "note"],
     "file": "data/posts/2026-06-19-second-demo-post.md"
-  },
-  {
-    "slug": "my-first-post",
-    "title": "从协同过滤到图推荐：推荐系统到底在优化什么？",
-    "date": "2026-06-18",
-    "summary": "一篇用于演示博客系统的文章：从用户-物品交互出发，理解推荐系统如何从相似性走向图结构。",
-    "tags": ["recommendation", "graph", "note"],
-    "file": "data/posts/2026-06-18-my-first-post.md"
   }
 ]
