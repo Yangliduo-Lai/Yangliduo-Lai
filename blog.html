@@ -6,7 +6,8 @@
     <meta name="description" content="Yangliduo Lai 的博客。" />
     <title>Blog | Yangliduo Lai</title>
     <link rel="stylesheet" href="assets/styles.css" />
-    <script src="assets/script.js?v=20260618-blogs-pagination" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
+    <script src="assets/script.js?v=20260618-blog-force" defer></script>
   </head>
   <body>
     <div class="page-shell" id="top">
@@ -29,18 +30,20 @@
           <h1>Blogs</h1>
         </section>
 
-        <section class="tag-graph-card" aria-label="Filter posts by tag graph">
-          <div class="tag-graph-header">
-            <span class="tag-icon" aria-hidden="true"></span>
-            <h2>Tag Map</h2>
-          </div>
-          <div class="tag-graph" data-tag-graph></div>
-        </section>
+        <section class="blog-layout">
+          <section class="posts-area" aria-label="Blog posts">
+            <div class="filter-status" data-filter-status></div>
+            <section class="blog-list" data-blog-list></section>
+            <nav class="pagination" data-pagination aria-label="Blog pagination"></nav>
+          </section>
 
-        <section class="posts-area" aria-label="Blog posts">
-          <div class="filter-status" data-filter-status></div>
-          <section class="blog-list" data-blog-list></section>
-          <nav class="pagination" data-pagination aria-label="Blog pagination"></nav>
+          <aside class="tag-graph-card" aria-label="Filter posts by tag graph">
+            <div class="tag-graph-header">
+              <span class="tag-icon" aria-hidden="true"></span>
+              <h2>Tag Map</h2>
+            </div>
+            <div class="tag-graph" data-tag-graph></div>
+          </aside>
         </section>
       </main>
 

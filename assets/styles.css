@@ -420,21 +420,21 @@ h3 {
 }
 
 .content-wrap {
-  padding: clamp(42px, 7vw, 82px) 0;
+  padding: clamp(34px, 6vw, 70px) 0;
 }
 
 .blog-heading {
   display: grid;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .blog-heading h1 {
-  font-size: clamp(3rem, 7vw, 5.8rem);
+  font-size: clamp(2.3rem, 5vw, 3.8rem);
 }
 
 .blog-list {
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .post-card {
@@ -488,12 +488,17 @@ h3 {
 .tag-graph-card {
   display: grid;
   gap: 14px;
-  margin-bottom: 28px;
   padding: clamp(18px, 3vw, 26px);
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow);
+}
+
+.tag-graph-card {
+  position: sticky;
+  top: 24px;
+  align-self: start;
 }
 
 .tag-panel-heading,
@@ -564,7 +569,7 @@ h3 {
 
 .tag-network {
   width: 100%;
-  min-height: 360px;
+  min-height: 420px;
   touch-action: none;
 }
 
@@ -594,6 +599,10 @@ h3 {
   stroke: var(--teal-dark);
   stroke-width: 2;
   transition: fill 160ms ease, stroke-width 160ms ease;
+}
+
+.tag-node {
+  transition: opacity 160ms ease;
 }
 
 .tag-node-link:hover .tag-node circle,
@@ -696,6 +705,13 @@ h3 {
 .posts-area {
   display: grid;
   gap: 14px;
+}
+
+.blog-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.82fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .pagination {
@@ -866,6 +882,7 @@ h3 {
   }
 
   .home-hero,
+  .blog-layout,
   .two-column,
   .research-grid {
     grid-template-columns: 1fr;
@@ -884,6 +901,11 @@ h3 {
 
   .info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tag-graph-card {
+    position: relative;
+    top: auto;
   }
 }
 

@@ -273,6 +273,7 @@
             class="tag-edge${active ? " is-active" : ""}"
             data-source="${escapeHtml(edge.source)}"
             data-target="${escapeHtml(edge.target)}"
+            data-count="${edge.count}"
             x1="${source.x}"
             y1="${source.y}"
             x2="${target.x}"
@@ -290,7 +291,13 @@
         const labelY = point.y + point.size + 18;
         return `
           <a class="tag-node-link" href="${getBlogUrl({ tag: node.tag })}" data-tag="${escapeHtml(node.tag)}">
-            <g class="tag-node${active ? " is-active" : ""}" data-tag="${escapeHtml(node.tag)}" transform="translate(${point.x} ${point.y})">
+            <g
+              class="tag-node${active ? " is-active" : ""}"
+              data-tag="${escapeHtml(node.tag)}"
+              data-count="${node.count}"
+              data-radius="${point.size.toFixed(2)}"
+              transform="translate(${point.x} ${point.y})"
+            >
               <circle r="${point.size.toFixed(2)}"></circle>
               <text class="tag-node-count" y="5">${node.count}</text>
             </g>
@@ -410,6 +417,11 @@
   const enableTagDragging = (mount) => {
     const svg = mount.querySelector(".tag-network");
     if (!svg) return;
+
+    if (window.d3) {
+      enableTagPhysics(svg);
+      return;
+    }
 
     let active = null;
     const positions = new Map();
@@ -542,6 +554,115 @@
           event.preventDefault();
         }
       });
+    });
+  };
+
+  const enableTagPhysics = (svg) => {
+    const d3 = window.d3;
+    const box = svg.viewBox.baseVal;
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    let suppressClick = false;
+
+    const nodes = Array.from(svg.querySelectorAll(".tag-node")).map((node) => {
+      const transform = node.getAttribute("transform") || "translate(0 0)";
+      const match = transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+      return {
+        id: node.dataset.tag,
+        count: Number(node.dataset.count || 1),
+        radius: Number(node.dataset.radius || 24),
+        x: match ? Number(match[1]) : centerX,
+        y: match ? Number(match[2]) : centerY
+      };
+    });
+
+    const links = Array.from(svg.querySelectorAll(".tag-edge")).map((edge) => ({
+      source: edge.dataset.source,
+      target: edge.dataset.target,
+      count: Number(edge.dataset.count || 1)
+    }));
+
+    const nodeById = new Map(nodes.map((node) => [node.id, node]));
+    const linkSelection = d3.select(svg).selectAll(".tag-edge").data(links);
+    const nodeSelection = d3.select(svg).selectAll(".tag-node-link").data(nodes, (node) => node.id);
+    const labelSelection = d3.select(svg).selectAll(".tag-node-label").data(nodes, (node) => node.id);
+
+    const clamp = (node) => {
+      node.x = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, node.x));
+      node.y = Math.max(box.y + node.radius + 12, Math.min(box.y + box.height - node.radius - 30, node.y));
+    };
+
+    const simulation = d3
+      .forceSimulation(nodes)
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((node) => node.id)
+          .distance((link) => Math.max(90, 160 - link.count * 18))
+          .strength((link) => Math.min(0.42, 0.12 + link.count * 0.1))
+      )
+      .force("charge", d3.forceManyBody().strength(-260))
+      .force("collide", d3.forceCollide((node) => node.radius + 22).iterations(2))
+      .force("center", d3.forceCenter(centerX, centerY))
+      .force("x", d3.forceX(centerX).strength(0.035))
+      .force("y", d3.forceY(centerY).strength(0.04))
+      .alpha(0.8)
+      .alphaDecay(0.035);
+
+    const ticked = () => {
+      nodes.forEach(clamp);
+
+      linkSelection
+        .attr("x1", (link) => link.source.x)
+        .attr("y1", (link) => link.source.y)
+        .attr("x2", (link) => link.target.x)
+        .attr("y2", (link) => link.target.y);
+
+      nodeSelection.select(".tag-node").attr("transform", (node) => `translate(${node.x} ${node.y})`);
+
+      labelSelection
+        .attr("x", (node) => node.x)
+        .attr("y", (node) => node.y + node.radius + 18);
+    };
+
+    simulation.on("tick", ticked);
+
+    const drag = d3
+      .drag()
+      .on("start", (event, node) => {
+        suppressClick = false;
+        if (!event.active) simulation.alphaTarget(0.35).restart();
+        node.fx = node.x;
+        node.fy = node.y;
+        node._startX = event.x;
+        node._startY = event.y;
+      })
+      .on("drag", (event, node) => {
+        if (Math.hypot(event.x - node._startX, event.y - node._startY) > 3) {
+          suppressClick = true;
+        }
+        node.fx = Math.max(box.x + node.radius + 12, Math.min(box.x + box.width - node.radius - 12, event.x));
+        node.fy = Math.max(box.y + node.radius + 12, Math.min(box.y + box.height - node.radius - 30, event.y));
+        simulation.alpha(0.45).restart();
+      })
+      .on("end", (event, node) => {
+        if (!event.active) simulation.alphaTarget(0);
+        node.fx = null;
+        node.fy = null;
+        window.setTimeout(() => {
+          suppressClick = false;
+        }, 180);
+      });
+
+    nodeSelection.call(drag).on("click", (event, node) => {
+      if (suppressClick) {
+        event.preventDefault();
+        return;
+      }
+      if (!nodeById.has(node.id)) {
+        event.preventDefault();
+      }
     });
   };
 
