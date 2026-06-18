@@ -245,11 +245,11 @@
     }
 
     const width = 960;
-    const height = 360;
+    const height = 420;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radiusX = nodes.length <= 2 ? 240 : 340;
-    const radiusY = nodes.length <= 2 ? 82 : 126;
+    const radiusX = nodes.length <= 2 ? 280 : 390;
+    const radiusY = nodes.length <= 2 ? 104 : 156;
     const maxCount = Math.max(...nodes.map((node) => node.count));
     const maxEdgeCount = Math.max(1, ...edges.map((edge) => edge.count));
     const positions = new Map();
@@ -338,6 +338,7 @@
       const searchInput = document.querySelector("[data-blog-search-input]");
       const countMount = document.querySelector("[data-blog-count]");
       const statsMount = document.querySelector("[data-blog-stats]");
+      const frequencyMount = document.querySelector("[data-blog-frequency]");
       const filteredPosts = posts.filter((post) => {
         const matchesTag = !currentTag || (post.tags || []).includes(currentTag);
         const haystack = [post.title, post.summary, post.slug, ...(post.tags || [])].join(" ").toLowerCase();
@@ -370,6 +371,10 @@
 
       if (statsMount) {
         statsMount.innerHTML = renderBlogStats(posts, currentTag, currentQuery);
+      }
+
+      if (frequencyMount) {
+        frequencyMount.innerHTML = renderBlogFrequency(posts);
       }
 
       if (tagMount) {
@@ -459,6 +464,56 @@
         </a>
       ` : ""}
       ${topTags}
+    `;
+  };
+
+  const renderBlogFrequency = (posts) => {
+    const counts = new Map();
+    posts.forEach((post) => {
+      if (!post.date) return;
+      counts.set(post.date, (counts.get(post.date) || 0) + 1);
+    });
+
+    const entries = Array.from(counts.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12);
+
+    if (!entries.length) {
+      return '<div class="empty-state">No post dates yet.</div>';
+    }
+
+    const width = 420;
+    const height = 150;
+    const paddingX = 18;
+    const paddingBottom = 30;
+    const paddingTop = 14;
+    const innerHeight = height - paddingTop - paddingBottom;
+    const maxCount = Math.max(...entries.map(([, count]) => count));
+    const gap = 7;
+    const barWidth = Math.max(12, (width - paddingX * 2 - gap * (entries.length - 1)) / entries.length);
+
+    const bars = entries
+      .map(([date, count], index) => {
+        const barHeight = Math.max(10, (count / maxCount) * innerHeight);
+        const x = paddingX + index * (barWidth + gap);
+        const y = paddingTop + innerHeight - barHeight;
+        const label = date.slice(5).replace("-", "/");
+        return `
+          <g>
+            <rect class="frequency-bar" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" rx="5">
+              <title>${escapeHtml(date)} · ${count} posts</title>
+            </rect>
+            <text x="${(x + barWidth / 2).toFixed(2)}" y="${height - 9}" text-anchor="middle">${escapeHtml(label)}</text>
+          </g>
+        `;
+      })
+      .join("");
+
+    return `
+      <svg class="frequency-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Post frequency by date">
+        <line class="frequency-axis" x1="${paddingX}" y1="${height - paddingBottom}" x2="${width - paddingX}" y2="${height - paddingBottom}" />
+        ${bars}
+      </svg>
     `;
   };
 
@@ -576,8 +631,8 @@
         const dx = link.target.x - link.source.x;
         const dy = link.target.y - link.source.y;
         const distance = Math.max(1, Math.hypot(dx, dy));
-        const desired = Math.max(92, 158 - link.count * 18);
-        const strength = 0.0028 + link.count * 0.0012;
+        const desired = Math.max(135, 210 - link.count * 12);
+        const strength = 0.0022 + link.count * 0.001;
         const force = (distance - desired) * strength;
         const fx = (dx / distance) * force;
         const fy = (dy / distance) * force;
@@ -599,8 +654,8 @@
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const distance = Math.max(1, Math.hypot(dx, dy));
-          const minimum = a.radius + b.radius + 30;
-          const push = Math.max(0, minimum - distance) * 0.018 + 52 / (distance * distance);
+          const minimum = a.radius + b.radius + 52;
+          const push = Math.max(0, minimum - distance) * 0.026 + 86 / (distance * distance);
           const fx = (dx / distance) * push;
           const fy = (dy / distance) * push;
 
@@ -617,10 +672,10 @@
 
       nodes.forEach((node) => {
         if (node !== draggedNode) {
-          node.vx += (centerX - node.x) * 0.0018;
-          node.vy += (centerY - node.y) * 0.002;
-          node.vx *= 0.88;
-          node.vy *= 0.88;
+          node.vx += (centerX - node.x) * 0.0013;
+          node.vy += (centerY - node.y) * 0.0014;
+          node.vx *= 0.9;
+          node.vy *= 0.9;
           node.x += node.vx;
           node.y += node.vy;
         }

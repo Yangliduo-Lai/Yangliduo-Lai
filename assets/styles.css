@@ -486,8 +486,7 @@ h3 {
 }
 
 .tag-panel,
-.tag-graph-card,
-.blog-tool-card {
+.blog-explorer-card {
   display: grid;
   gap: 14px;
   padding: clamp(18px, 3vw, 26px);
@@ -501,13 +500,14 @@ h3 {
   position: sticky;
   top: 24px;
   display: grid;
-  gap: 18px;
-  align-self: start;
-  min-height: var(--blog-panel-min-height);
+  align-self: stretch;
+  min-height: max(var(--blog-panel-min-height), calc(100svh - 140px));
 }
 
-.tag-graph-card {
-  align-self: start;
+.blog-explorer-card {
+  min-height: 100%;
+  align-content: start;
+  gap: 18px;
 }
 
 .tag-panel-heading,
@@ -572,8 +572,15 @@ h3 {
   align-content: start;
 }
 
-.blog-tool-card {
-  align-content: start;
+.explorer-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+}
+
+.explorer-section h2 {
+  font-size: clamp(1.02rem, 1.8vw, 1.22rem);
 }
 
 .blog-tool-heading {
@@ -656,6 +663,35 @@ h3 {
   font-weight: 720;
 }
 
+.blog-frequency {
+  min-height: 168px;
+}
+
+.frequency-chart {
+  width: 100%;
+  min-height: 164px;
+}
+
+.frequency-axis {
+  stroke: color-mix(in srgb, var(--line) 80%, var(--ink));
+  stroke-width: 1;
+}
+
+.frequency-bar {
+  fill: color-mix(in srgb, var(--gold) 72%, var(--surface-strong));
+  transition: fill 160ms ease, opacity 160ms ease;
+}
+
+.frequency-bar:hover {
+  fill: var(--coral);
+}
+
+.frequency-chart text {
+  fill: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 720;
+}
+
 .tag-graph-actions {
   display: flex;
   justify-content: flex-end;
@@ -663,7 +699,7 @@ h3 {
 
 .tag-network {
   width: 100%;
-  min-height: 420px;
+  min-height: 390px;
   touch-action: none;
 }
 
@@ -816,7 +852,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .blog-layout-status {
