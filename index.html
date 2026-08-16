@@ -23,9 +23,15 @@
         <span class="brand-mark">YL</span><span class="brand-name">Yangliduo Lai</span>
       </a>
       <nav class="desktop-nav" aria-label="Primary navigation">
-        <a href="#about">About</a><a href="#research">Research</a>
-        <a href="#projects">Projects</a><a href="#publications">Publications</a>
+        <a href="#home">About</a>
+
+        <!--
+        <a href="#research">Research</a>
+        <a href="#projects">Projects</a>
+        <a href="#publications">Publications</a>
         <a href="#contact">Contact</a>
+        -->
+
       </nav>
       <div class="nav-actions">
         <button class="theme-toggle icon-button" type="button" aria-label="Switch color theme">
@@ -37,7 +43,7 @@
       </div>
     </div>
     <nav class="mobile-menu" id="mobile-menu" aria-label="Mobile navigation">
-      <a href="#about">About</a><a href="#research">Research</a>
+      <a href="#home">About</a><a href="#research">Research</a>
       <a href="#projects">Projects</a><a href="#publications">Publications</a>
       <a href="#contact">Contact</a>
     </nav>
@@ -52,51 +58,89 @@
           <!-- EDIT-ME: replace the introductory content with your own. -->
           <p class="eyebrow hero-enter">Welcome to my corner of the web</p>
           <h1 class="hero-enter" id="hero-title"><span>Hi, I'm Yangliduo Lai</span></h1>
-          <p class="hero-role hero-enter"><span data-typing>curious researcher.</span></p>
-          <p class="hero-summary hero-enter">This is a short introduction about what I study, what I care about, and the kind of questions I hope to answer through my work.</p>
-          <div class="hero-actions hero-enter">
-            <a class="button primary" href="#research">Explore my work <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-            <a class="button quiet" href="#contact">Get in touch</a>
-          </div>
-          <div class="hero-topics hero-enter"><span>LLM Agent</span><span>Research Area 02</span><span>Research Area 03</span></div>
+          <p class="hero-summary hero-enter">I am Yangliduo Lai (赖杨丽多), an independent researcher in Computer Science. I received my B.S. in Computer Science and Technology from Southeast University in 2025.</p>
+          <section class="interest-showcase hero-enter" aria-labelledby="interest-title">
+            <div class="interest-heading">
+              <p id="interest-title">Research Interests</p>
+              <span aria-hidden="true">Three directions, one shared goal</span>
+            </div>
+            <div class="interest-grid">
+              <article>
+                <h2>Human Computer Interaction</h2>
+                <p>Interactive AI for effective human–AI collaboration.</p>
+              </article>
+              <article>
+                <h2>Natural Language Processing</h2>
+                <p>Language technologies for science and biomedicine.</p>
+              </article>
+              <article>
+                <h2>AI for Healthcare</h2>
+                <p>Reliable AI for clinical reasoning and decision support.</p>
+              </article>
+            </div>
+          </section>
         </div>
         <div class="hero-visual hero-enter" data-parallax-root>
           <div class="orbit one" aria-hidden="true"></div><div class="orbit two" aria-hidden="true"></div>
           <div class="portrait-card" data-parallax-card>
             <div class="portrait-status"><i></i> Available for collaboration</div>
-            <div class="portrait-placeholder"><strong>YL</strong><span>Your portrait here</span></div>
-            <div class="portrait-caption"><div><span>Currently exploring</span><strong>Your current research topic</strong></div><b>↗</b></div>
+            <div class="portrait-photo">
+              <img src="assets/profile-avatar.jpg" alt="Illustrated avatar of Yangliduo Lai wearing a pink bunny hood" width="900" height="900">
+            </div>
           </div>
-          <div class="floating-note note-one"><b>✦</b> Ask better questions</div>
-          <div class="floating-note note-two"><b>⌁</b> Build with care</div>
+          <div class="floating-note note-one"><b>✦</b> Hey, welcome!</div>
+          <div class="floating-note note-two"><b>⌁</b> Glad you're here</div>
+        </div>
+        <div class="about-details">
+          <section class="career-panel reveal" aria-labelledby="career-title">
+            <div class="about-panel-heading">
+              <p>Background</p>
+              <h3 id="career-title">Education &amp; Experience</h3>
+            </div>
+            <!-- EDIT-ME: Adjust dates, institutions, locations, and descriptions. -->
+            <ol class="career-list">
+              <li>
+                <time>2026 — now</time>
+                <i aria-hidden="true"></i>
+                <div>
+                  <h4>Southeast University</h4>
+                  <p>Research Assistant</p>
+                  <small>Nanjing, China</small>
+                </div>
+              </li>
+              <li>
+                <time>2021 — 2025</time>
+                <i aria-hidden="true"></i>
+                <div>
+                  <h4>Southeast University</h4>
+                  <p>B.S. in Computer Science and Technology</p>
+                  <small>Nanjing, China</small>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <section class="news-panel reveal" aria-labelledby="news-title">
+            <div class="about-panel-heading news-heading">
+              <div><p>Updates</p><h3 id="news-title">News</h3></div>
+              <span>2026 — 2026</span>
+            </div>
+            <ol class="news-list">
+              <!--<li><time datetime="2026-06">Jun 2026</time><p>Two papers were accepted to <strong>ACM UIST 2026</strong>. Thanks to Xinru and Nianlong.</p></li>
+              <li><time datetime="2025-12">Dec 2025</time><p>Our “AI Afterlife” work was covered by <a href="https://shuaima.cc/personal_webpage_files/paper_pdf/ChinaDaily.pdf" target="_blank" rel="noreferrer">China Daily <span aria-hidden="true">↗</span></a>.</p></li>
+              <li><time datetime="2025-05">May 2025</time><p>Attended <strong>CHI 2025</strong> in Yokohama, Japan.</p></li>-->
+            </ol>
+          </section>
         </div>
       </div>
-      <a class="scroll-cue" href="#about"><span>Scroll to discover</span><i></i></a>
+      <a class="scroll-cue" href="#research"><span>Scroll to discover</span><i></i></a>
     </section>
 
-    <section class="section about" id="about" aria-labelledby="about-title">
-      <div class="container">
-        <div class="section-heading reveal"><p class="eyebrow">01 · About</p><h2 id="about-title">A little context<br>behind the work.</h2></div>
-        <div class="about-layout">
-          <div class="about-story reveal">
-            <!-- EDIT-ME: replace these paragraphs with your biography. -->
-            <p class="lead">I’m a <em>placeholder title</em> interested in understanding how people, technology, and ideas shape one another.</p>
-            <p>Use this space for your current affiliation, educational background, and a concise explanation of your research direction. Two or three thoughtful paragraphs are usually enough.</p>
-            <p>You can also mention what motivates you beyond publications: the problems you enjoy, the communities you hope to serve, or the way you approach collaboration.</p>
-          </div>
-          <div class="fact-grid stagger">
-            <article class="fact-card reveal-child"><b>⌖</b><p>Based in</p><h3>Your city, country</h3><small>Open to collaboration</small></article>
-            <article class="fact-card reveal-child"><b>◎</b><p>Current focus</p><h3>Your primary research area</h3><small>Topic · Topic · Topic</small></article>
-            <article class="fact-card reveal-child"><b>↗</b><p>Affiliation</p><h3>Your university or lab</h3><small>Department / Group</small></article>
-            <article class="fact-card reveal-child"><b>☕</b><p>Beyond research</p><h3>Three things you enjoy</h3><small>Hobby · Hobby · Hobby</small></article>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!--
 
     <section class="section research" id="research" aria-labelledby="research-title">
       <div class="container">
-        <div class="split-heading reveal"><div class="section-heading"><p class="eyebrow">02 · Research</p><h2 id="research-title">Questions worth<br>staying curious about.</h2></div><p>A one-sentence overview connecting your research themes. Keep it broad enough to create a clear story across different projects.</p></div>
+        <div class="split-heading reveal"><div class="section-heading"><p class="eyebrow">01 · Research</p><h2 id="research-title">Questions worth<br>staying curious about.</h2></div><p>A one-sentence overview connecting your research themes. Keep it broad enough to create a clear story across different projects.</p></div>
         <div class="research-grid stagger">
           <article class="research-card spotlight reveal-child"><span>01</span><div class="symbol symbol-orbit"><i></i><i></i><b></b></div><h3>Research theme one</h3><p>A short explanation of the central question, approach, or population that makes this direction meaningful.</p><div class="tags"><span>Keyword</span><span>Method</span></div></article>
           <article class="research-card spotlight reveal-child"><span>02</span><div class="symbol symbol-nodes"><i></i><i></i><i></i><b></b></div><h3>Research theme two</h3><p>Describe a second line of inquiry and how it complements the broader agenda introduced above.</p><div class="tags"><span>Keyword</span><span>System</span></div></article>
@@ -107,7 +151,7 @@
 
     <section class="section projects" id="projects" aria-labelledby="projects-title">
       <div class="container">
-        <div class="split-heading reveal"><div class="section-heading"><p class="eyebrow">03 · Selected work</p><h2 id="projects-title">From questions<br>to working things.</h2></div><p>Feature the projects that best show how you think. Each card can link to a paper, project page, demo, or repository.</p></div>
+        <div class="split-heading reveal"><div class="section-heading"><p class="eyebrow">02 · Selected work</p><h2 id="projects-title">From questions<br>to working things.</h2></div><p>Feature the projects that best show how you think. Each card can link to a paper, project page, demo, or repository.</p></div>
         <div class="project-list">
           <article class="project-card spotlight reveal">
             <div class="project-visual visual-one"><div class="mock-window"><i></i><i></i><i></i><div><span></span><span></span><span></span></div></div><small>Project visual</small></div>
@@ -127,7 +171,7 @@
 
     <section class="section publications" id="publications" aria-labelledby="publications-title">
       <div class="container publications-layout">
-        <div class="publications-intro reveal"><div class="section-heading"><p class="eyebrow">04 · Publications</p><h2 id="publications-title">Selected writing<br>&amp; publications.</h2></div><p>Add peer-reviewed papers, preprints, posters, patents, or selected writing. Keep the full list on Scholar if it grows long.</p><a class="text-link" href="#">Google Scholar <span>↗</span></a></div>
+        <div class="publications-intro reveal"><div class="section-heading"><p class="eyebrow">03 · Publications</p><h2 id="publications-title">Selected writing<br>&amp; publications.</h2></div><p>Add peer-reviewed papers, preprints, posters, patents, or selected writing. Keep the full list on Scholar if it grows long.</p><a class="text-link" href="#">Google Scholar <span>↗</span></a></div>
         <ol class="publication-list stagger">
           <li class="publication-item reveal-child"><span>01</span><article><div class="publication-meta"><b>CONFERENCE ’26</b><b>Paper</b></div><h3>Your publication title goes here in sentence case</h3><p><strong>Your Name</strong>, Coauthor One, Coauthor Two</p><div class="publication-links"><a href="#">Paper ↗</a><a href="#">Project ↗</a><a href="#">Code ↗</a></div></article></li>
           <li class="publication-item reveal-child"><span>02</span><article><div class="publication-meta"><b>JOURNAL ’25</b><b>Article</b></div><h3>A second publication with a descriptive academic title</h3><p>Coauthor One, <strong>Your Name</strong>, Coauthor Two</p><div class="publication-links"><a href="#">Paper ↗</a><a href="#">DOI ↗</a></div></article></li>
@@ -137,7 +181,7 @@
     </section>
 
     <section class="section notes" aria-labelledby="notes-title">
-      <div class="container"><div class="section-heading centered reveal"><p class="eyebrow">05 · More about me</p><h2 id="notes-title">Milestones &amp; toolkit.</h2></div>
+      <div class="container"><div class="section-heading centered reveal"><p class="eyebrow">04 · More about me</p><h2 id="notes-title">Milestones &amp; toolkit.</h2></div>
         <div class="notes-grid">
           <div class="timeline reveal"><h3>Selected milestones</h3><ol><li><time>2026</time><div><strong>Award or recent milestone</strong><span>Organization or short context</span></div></li><li><time>2025</time><div><strong>Degree, role, or recognition</strong><span>Institution or team</span></div></li><li><time>2024</time><div><strong>Earlier milestone</strong><span>One concise line of context</span></div></li></ol></div>
           <div class="toolkit reveal"><h3>Technical toolkit</h3><div class="skill-groups"><div><span>Research</span><p>Method · Method · Method · Analysis</p></div><div><span>Development</span><p>Language · Framework · Platform · Tool</p></div><div><span>Design</span><p>Prototyping · Visualization · Interaction</p></div><div><span>Other</span><p>Add the tools that support your real workflow</p></div></div></div>
@@ -145,15 +189,17 @@
       </div>
     </section>
 
+
     <section class="contact" id="contact" aria-labelledby="contact-title">
       <div class="contact-aurora" aria-hidden="true"></div>
-      <div class="container contact-inner reveal"><p class="eyebrow">06 · Contact</p><h2 id="contact-title">Let’s make the next<br><span>good idea happen.</span></h2><p>Add a warm invitation for research collaborations, internships, conversations, or opportunities you would like to receive.</p>
-        <!-- EDIT-ME: replace the email and social links. -->
+      <div class="container contact-inner reveal"><p class="eyebrow">Contact</p><h2 id="contact-title">Let’s make the next<br><span>good idea happen.</span></h2><p>Add a warm invitation for research collaborations, internships, conversations, or opportunities you would like to receive.</p>
         <a class="contact-email" href="mailto:yangliduolai@gmail.com">yangliduolai@gmail.com <span>→</span></a>
         <div class="social-links"><a href="https://github.com/Yangliduo-Lai" target="_blank" rel="noreferrer">GitHub ↗</a><a href="#">Google Scholar ↗</a><a href="#">LinkedIn ↗</a><a href="#">CV ↗</a></div>
       </div>
     </section>
+    -->
   </main>
+
 
   <footer><div class="container footer-inner"><p>Made with curiosity, care, and a little color.</p><p>© <span data-year>2026</span> Yangliduo Lai</p><a href="#home">Back to top ↑</a></div></footer>
 </body>
