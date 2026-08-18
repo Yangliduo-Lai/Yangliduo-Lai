@@ -1,6 +1,7 @@
 const root=document.documentElement,body=document.body,header=document.querySelector("[data-header]"),progress=document.querySelector(".scroll-progress span"),menuButton=document.querySelector(".menu-button"),mobileMenu=document.querySelector(".mobile-menu"),reduceMotion=matchMedia("(prefers-reduced-motion: reduce)");
 root.dataset.theme="light";
-document.querySelector(".theme-toggle")?.addEventListener("click",()=>{const next=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=next;document.querySelector('meta[name="theme-color"]')?.setAttribute("content",next==="dark"?"#101014":"#f7f7fb")});
+sessionStorage.setItem("portfolio-theme","light");
+document.querySelector(".theme-toggle")?.addEventListener("click",()=>{const next=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=next;sessionStorage.setItem("portfolio-theme",next);document.querySelector('meta[name="theme-color"]')?.setAttribute("content",next==="dark"?"#101014":"#f7f7fb")});
 function closeMenu(){menuButton?.setAttribute("aria-expanded","false");mobileMenu?.classList.remove("is-open");header?.classList.remove("menu-visible");body.classList.remove("menu-open")}
 menuButton?.addEventListener("click",()=>{const open=menuButton.getAttribute("aria-expanded")!=="true";menuButton.setAttribute("aria-expanded",String(open));mobileMenu?.classList.toggle("is-open",open);header?.classList.toggle("menu-visible",open);body.classList.toggle("menu-open",open)});
 mobileMenu?.querySelectorAll("a").forEach(link=>link.addEventListener("click",closeMenu));addEventListener("keydown",event=>{if(event.key==="Escape")closeMenu()});
