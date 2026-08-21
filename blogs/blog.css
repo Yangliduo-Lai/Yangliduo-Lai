@@ -129,6 +129,8 @@ button,input,select{color:inherit;font:inherit}
 .blog-nav{display:flex;width:100%;height:auto;padding:20px 26px;align-items:center;justify-content:space-between}
 .blog-word{font-size:20px;font-weight:700;letter-spacing:-.035em}
 .blog-nav-actions{display:flex;align-items:center;gap:9px}
+.language-switch{display:grid;min-width:36px;height:36px;padding:0 9px;place-items:center;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:10px;font-weight:680;transition:border-color .2s ease,color .2s ease,background .2s ease}
+.language-switch:hover{border-color:var(--line2);background:var(--soft);color:var(--text)}
 .profile-link{display:flex;min-height:36px;padding:0 11px;align-items:center;gap:6px;border-radius:999px;color:var(--muted);font-size:11px;font-weight:630;transition:background .2s ease,color .2s ease}
 .profile-link:hover{background:var(--soft);color:var(--text)}
 .blog-theme-toggle{display:grid;width:36px;height:36px;padding:0;place-items:center;border:1px solid var(--line);border-radius:50%;background:color-mix(in srgb,var(--surface) 72%,transparent);cursor:pointer;transition:border-color .2s ease,background .2s ease,transform .2s ease}

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Reading notes on Psy-Chronicle: synthesizing and evaluating long-horizon campus psychological counseling dialogues with profiles, temporal stress events, cross-session simulation, and structured memory.">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>CPCD Reading Notes: A Long-Horizon Campus Counseling Dialogue Dataset and Benchmark</title>
+  <link rel="alternate" hreflang="zh-CN" href="psy-chronicle-reading-notes.html">
+  <link rel="alternate" hreflang="en" href="psy-chronicle-reading-notes-en.html">
+  <link rel="icon" href="../assets/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="stylesheet" href="blog.css?v=12">
+  <script src="blog.js?v=6" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="Blog navigation"><a class="blog-word" href="./">Blog</a><div class="blog-nav-actions"><a class="language-switch" href="psy-chronicle-reading-notes.html" lang="zh-CN">中文</a><a class="profile-link" href="../"><span aria-hidden="true">←</span> Profile</a><button class="blog-theme-toggle" type="button" aria-label="Toggle color theme"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>CPCD Reading Notes: A Long-Horizon Campus Counseling Dialogue Dataset and Benchmark</h1>
+        <div class="post-header-tags" aria-label="Article tags"><span>Paper Notes</span><span>Mental Health</span><span>Synthetic Data</span><span>Benchmark</span></div>
+        <div class="post-byline"><time datetime="2026-08-21">August 21, 2026</time><i></i><span>15 min read</span></div>
+      </header>
+      <div class="post-layout">
+        <div class="article-body">
+          <p class="lead">These are my reading notes on <em>Psy-Chronicle: A Structured Pipeline for Synthesizing Long-Horizon Campus Psychological Counseling Dialogues</em>. The paper addresses a practical limitation: most existing psychological-support data consists of single-turn exchanges or short conversations, while real psychological distress rarely emerges from one isolated event. It may begin with a failed exam, gradually affect sleep, relationships, and self-evaluation, and recur across multiple counseling sessions.</p>
+
+          <p>The paper makes three main contributions:</p>
+          <ol class="reading-list">
+            <li><strong>Psy-Chronicle:</strong> a structured framework for synthesizing campus counseling dialogues over long time spans;</li>
+            <li><strong>CPCD (Chinese Psychological Counseling Dialogue Dataset):</strong> a Chinese long-horizon dialogue dataset for university counseling scenarios;</li>
+            <li><strong>CPCD-Bench:</strong> a benchmark that evaluates session-level response, long-term memory recall, and temporal-causal reasoning.</li>
+          </ol>
+
+          <h2>Psy-Chronicle Method</h2>
+
+          <figure class="paper-figure">
+            <a class="paper-figure-link" href="../assets/psy-chronicle-framework.png" target="_blank" rel="noreferrer" aria-label="Open the high-resolution Psy-Chronicle framework figure">
+              <img src="../assets/psy-chronicle-framework.png" alt="The Psy-Chronicle framework: student profile construction, temporal stress event graph, cross-session counseling simulation, and CPCD dataset evaluation" width="1500" height="720" loading="lazy">
+              <span aria-hidden="true">View full size ↗</span>
+            </a>
+            <figcaption>Figure 1 · Psy-Chronicle's framework for long-horizon campus counseling data synthesis, post-processing, and evaluation. Adapted from Figure 1 of the paper.</figcaption>
+          </figure>
+
+          <p><strong>1. Student profile.</strong> For each synthetic student <em>i</em>, the framework first constructs a four-dimensional profile:</p>
+          <div class="equation" aria-label="Equation 1: a student profile contains four dimensions"><math display="block"><msub><mi>P</mi><mi>i</mi></msub><mo>=</mo><mo>{</mo><msub><mi>B</mi><mi>i</mi></msub><mo>,</mo><msub><mi>T</mi><mi>i</mi></msub><mo>,</mo><msub><mi>S</mi><mi>i</mi></msub><mo>,</mo><msub><mi>C</mi><mi>i</mi></msub><mo>}</mo></math><span>(1)</span></div>
+          <p>Here, <em>B<sub>i</sub></em>, <em>T<sub>i</sub></em>, <em>S<sub>i</sub></em>, and <em>C<sub>i</sub></em> denote demographic and academic background, personality tendency, family and social support background, and the core psychological conflict.</p>
+
+          <p><strong>2. Temporal stress event graph.</strong> From the profile, the framework generates a stress event graph spanning the semester:</p>
+          <div class="equation" aria-label="Equation 2: the temporal stress event graph consists of event nodes and edges"><math display="block"><msub><mi>G</mi><mi>i</mi></msub><mo>=</mo><mo>(</mo><msub><mi>V</mi><mi>i</mi></msub><mo>,</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo><mo>,</mo><mspace width="1em"/><msub><mi>V</mi><mi>i</mi></msub><mo>=</mo><mo>{</mo><msub><mi>v</mi><mrow><mi>i</mi><mo>,</mo><mn>1</mn></mrow></msub><mo>,</mo><msub><mi>v</mi><mrow><mi>i</mi><mo>,</mo><mn>2</mn></mrow></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>v</mi><mrow><mi>i</mi><mo>,</mo><mi>T</mi></mrow></msub><mo>}</mo></math><span>(2)</span></div>
+          <p><em>V<sub>i</sub></em> is the sequence of stress-event nodes, while <em>E<sub>i</sub></em> captures temporal and developmental dependencies. Each node records the event, time, stress intensity, and dominant psychological state afterward. At weekly granularity, the system generates 10–15 events over 16 weeks in five campus domains: academic pressure, interpersonal relationships, career development, family and financial stress, and physical and mental health. <em>caused_by</em> edges organize these stressors into a coherent, evolving trajectory.</p>
+          <p><strong>For example:</strong> in week 1, a student begins to doubt their ability because a major course is too difficult (E1). In week 4, a conflict with a roommate leads to social withdrawal (E2). By week 12, persistent academic stress and withdrawal jointly trigger insomnia and anxiety (E3). E2 can record <code>caused_by: [E1]</code>, while E3 records <code>caused_by: [E1, E2]</code>. A later counseling session therefore sees not just “recent insomnia,” but how it developed from earlier academic frustration and interpersonal withdrawal.</p>
+
+          <p><strong>3. Cross-session counseling simulation.</strong> Psy-Chronicle simulates multiple sessions along the event graph. At session <em>t</em>, the dialogue depends on the profile, current event, and accumulated memory:</p>
+          <div class="equation" aria-label="Equation 3: the current session is generated from profile, event, and memory"><math display="block"><msub><mi>D</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>=</mo><mi>Φ</mi><mo>(</mo><msub><mi>P</mi><mi>i</mi></msub><mo>,</mo><msub><mi>v</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><msub><mi>M</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>)</mo></math><span>(3)</span></div>
+          <p><em>Φ(·)</em> represents the interactive simulation between a student agent and a counselor agent.</p>
+
+          <p><strong>4. Structured memory update.</strong> After each session, a session-level summarizer <em>Ψ(·)</em> compresses the dialogue and updates historical memory:</p>
+          <div class="equation" aria-label="Equation 4: historical memory is updated after each session"><math display="block"><msub><mi>M</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>=</mo><mi>Update</mi><mo>(</mo><msub><mi>M</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>,</mo><mi>Ψ</mi><mo>(</mo><msub><mi>D</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><msub><mi>v</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>)</mo><mo>)</mo></math><span>(4)</span></div>
+          <p>The summary records the current stress event, dominant emotions, core conflict, counseling focus, and unresolved issues, then becomes context for future sessions. This avoids rereading every raw dialogue at each generation step while improving continuity and reducing factual drift.</p>
+          <p>The closed-loop process can therefore be written as:</p>
+          <div class="equation" aria-label="Equation 5: Psy-Chronicle's closed-loop generation process"><math display="block"><msub><mi>P</mi><mi>i</mi></msub><mo>→</mo><msub><mi>G</mi><mi>i</mi></msub><mo>→</mo><msubsup><mrow><mo>{</mo><msub><mi>D</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>}</mo></mrow><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></msubsup><mo>→</mo><msubsup><mrow><mo>{</mo><msub><mi>M</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>}</mo></mrow><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></msubsup></math><span>(5)</span></div>
+          <p>Each session is explicitly tied to a stable profile, the current campus stress event, and accumulated counseling history. The final data also undergoes checks for structural completeness, semantic consistency, diversity, campus-scenario appropriateness, and safety boundaries.</p>
+
+          <h2>Benchmark</h2>
+          <p>CPCD-Bench tests more than whether a model can produce one plausible counseling response. It also tests whether the model can use cross-session history, track long-term changes in distress, and understand temporal and developmental relationships among stress events. Twenty complete student trajectories excluded from training are used to construct three complementary tasks.</p>
+          <div class="paper-table-wrap"><table class="paper-table task-table">
+            <caption>Table 1 · The three CPCD-Bench evaluation tasks</caption>
+            <thead><tr><th>Task</th><th>Input</th><th>Output</th><th>Evaluation focus</th><th>Samples</th></tr></thead>
+            <tbody>
+              <tr><th>SR</th><td>Student profile, current context, historical memory</td><td>Next counselor response</td><td>Response quality, history utilization, contextual coherence</td><td>99</td></tr>
+              <tr><th>MR</th><td>Student profile, complete counseling history</td><td>Answers to factual questions</td><td>Long-horizon retrieval, factual accuracy, hallucination control</td><td>40</td></tr>
+              <tr><th>TCR</th><td>Student profile, complete counseling history</td><td>Event trajectory and causal explanation</td><td>Temporal ordering, event-chain organization, causal reasoning</td><td>20</td></tr>
+            </tbody>
+          </table></div>
+          <p>The paper uses LLM-as-a-Judge for open-ended outputs, with <strong>GPT-5.2 as the automatic judge</strong>. The baselines include general-purpose models, domain-specific counseling models, and Qwen3 models sharing the base architecture of CPCD-Chat.</p>
+          <div class="paper-table-wrap results-wrap"><table class="paper-table results-table">
+            <caption>Table 2 · CPCD-Bench automatic scores (judge: GPT-5.2)</caption>
+            <thead><tr><th>Category</th><th>Model</th><th>SR</th><th>MR</th><th>TCR</th></tr></thead>
+            <tbody>
+              <tr><td rowspan="9">General</td><th>GPT-5.4</th><td class="best">4.778</td><td class="best">4.513</td><td class="best">4.525</td></tr>
+              <tr><th>Gemini-3-flash-preview</th><td>4.455</td><td>4.445</td><td>4.445</td></tr><tr><th>Gemini-2.5-flash</th><td>3.967</td><td>4.296</td><td>4.211</td></tr><tr><th>DeepSeek V3.2</th><td>4.397</td><td>4.318</td><td>4.488</td></tr><tr><th>MiniMax M2.7</th><td>4.173</td><td>4.102</td><td>4.212</td></tr><tr><th>GLM-5.1</th><td>4.198</td><td>4.202</td><td>4.311</td></tr><tr><th>Kimi-k2.5</th><td>4.212</td><td>4.103</td><td>4.228</td></tr><tr><th>Qwen3-Max</th><td>4.231</td><td>4.205</td><td>4.238</td></tr><tr><th>Qwen3-8B</th><td>3.625</td><td>3.722</td><td>3.623</td></tr>
+              <tr class="group-start"><td rowspan="3">Domain-specific</td><th>CBT-LLM (Baichuan-7B)</th><td>3.714</td><td>3.811</td><td>3.733</td></tr><tr><th>Camel (LLaMA-8B)</th><td>3.778</td><td>3.814</td><td>3.712</td></tr><tr><th>PsyLLM (Qwen3-8B)</th><td>3.825</td><td>3.922</td><td>3.823</td></tr>
+              <tr class="group-start ours"><td rowspan="2">Ours</td><th>CPCD-Chat-4B</th><td>3.776</td><td>3.756</td><td>3.641</td></tr><tr class="ours"><th>CPCD-Chat-8B</th><td>3.884</td><td>3.947</td><td>3.824</td></tr>
+            </tbody>
+          </table></div>
+
+          <h2>How the Three Tasks Are Scored</h2>
+          <section class="rubric-card"><h3>SR · Session-level response</h3><p>Given a student profile, current context, and historical memory, SR evaluates the model's next counselor response.</p><ul><li><strong>Empathy:</strong> whether it accurately recognizes and responds to the student's emotions and deeper meaning;</li><li><strong>Coherence:</strong> whether it is consistent with the profile, trajectory, current expression, and counseling stage;</li><li><strong>Professionalism:</strong> whether it maintains professional boundaries, stable communication, and risk awareness.</li></ul><p>High-scoring responses show deep empathy, use context closely, and preserve professional boundaries. Superficial reassurance, ignored history, contextual conflict, lecturing, or potentially harmful language lowers the score.</p></section>
+          <section class="rubric-card"><h3>MR · Memory recall</h3><p>MR evaluates factual retrieval from long counseling histories using accuracy, completeness, temporal consistency, and hallucination control.</p><ul><li><strong>Accuracy:</strong> correctly recalling events, people, states, or values;</li><li><strong>Completeness:</strong> covering the information requested;</li><li><strong>Temporal consistency:</strong> preserving the correct order of events;</li><li><strong>No hallucination:</strong> avoiding details absent from the history.</li></ul></section>
+          <section class="rubric-card"><h3>TCR · Temporal-causal reasoning</h3><p>TCR evaluates how well a model organizes and explains the long-term development of psychological distress. Its dimensions are temporal accuracy, causal coherence, completeness, and hallucination control.</p><ul><li><strong>Temporal accuracy:</strong> organizing key events in the right order;</li><li><strong>Causal coherence:</strong> explaining interactions and distinguishing triggers, amplifiers, and maintaining factors;</li><li><strong>Completeness:</strong> covering key events and mechanisms;</li><li><strong>No hallucination:</strong> avoiding invented events, diagnoses, behavior, or exaggerated conclusions.</li></ul><p>A strong answer builds both a clear timeline and a defensible causal chain. Merely listing isolated events—or filling gaps with invented information—does not demonstrate an understanding of long-term change.</p></section>
+
+          <h2>How Counseling Dialogues and Memory Are Generated</h2>
+          <p>The counselor agent receives basic student information, historical memory, the current dialogue, and the counseling phase. To preserve information asymmetry, it does not see the complete internal profile or predefined core conflict, but must understand the student progressively through conversation. The core prompt also permits at most one question per turn, favors Socratic guidance, asks for concise conversational language, and requires strict adherence to the current counseling phase.</p>
+          <details class="prompt-details"><summary>View the counselor agent's core prompt</summary><pre><code>Role: Counselor Agent
+
+You are conducting the {session_id}-th counseling session
+with student {student_name}.
+
+Counseling Context:
+- Basic information: {basic_info}
+- Historical memory: {memory_summary}
+- Dialogue history: {dialogue_history}
+
+Current counseling phase:
+{current_phase}
+
+Phase instruction:
+{phase_instruction}
+
+Dialogue principles:
+1. Ask at most one question in each response.
+2. Use Socratic guidance rather than directly telling the student what to think,
+   except in crisis-intervention situations.
+3. Keep the response concise, natural, and conversational.
+4. Strictly follow the current phase; do not rush into later-stage advice.
+
+Please reply as the counselor. Output only spoken content.</code></pre></details>
+          <div class="stage-grid">
+            <section><span>Turns 1–8</span><h3>Rapport and exploration</h3><p>Use brief responses, minimal encouragers, and open questions to listen and clarify without rushing into analysis or advice.</p></section>
+            <section><span>Turns 9–12</span><h3>Deeper exploration</h3><p>Respond to expressed emotions, ask about concrete situations, clarify ambiguity, and connect prior counseling memory when needed.</p></section>
+            <section><span>Remaining turns</span><h3>CBT-oriented intervention</h3><p>Move through validation and empathy, identifying key thoughts or beliefs, open reflection, strategy exploration, and future-oriented encouragement.</p></section>
+          </div>
+          <p>Each session contains at least 20 and at most 30 turns. After the minimum, a closing phrase such as “see you next week” can end the session. The memory module then compresses it into a structured record:</p>
+          <details class="prompt-details"><summary>View the structured memory format</summary><pre><code>{
+  "session_id": "{session_id}",
+  "week": "{week}",
+  "emotional_state": "The student's dominant emotional state",
+  "key_topics": "Key topics discussed in this session",
+  "counselor_intervention": "Main interventions used by the counselor",
+  "student_progress": "Student progress or resistance",
+  "summary_text": "A summary of no more than 200 Chinese characters for later sessions"
+}</code></pre></details>
+
+          <h2>How to Use the CPCD Dataset</h2>
+          <p>CPCD is available on <a href="https://huggingface.co/datasets/EdwinUstb/CPCD" target="_blank" rel="noreferrer">Hugging Face</a> and ModelScope, while raw sessions are available in the author's GitHub repository. Data is organized by student trajectory: <code>conversation/{session_num}/consultation_events_{case_id}.json</code> stores raw dialogue for sessions 1–10, and the same <em>case_id</em> always refers to the same synthetic student.</p>
+          <ol class="reading-list usage-list"><li><strong>Split by trajectory.</strong> Divide training and validation data by student <em>case_id</em>, not by randomly splitting dialogue turns. Otherwise, the same profile and history may leak into both sets.</li><li><strong>Construct supervised fine-tuning examples.</strong> The paper's input combines profile, current context, memory summary, and necessary event background; the output is the target counselor response. Each counselor turn can become an instruction/input/output sample.</li><li><strong>Preserve intermediate structures.</strong> For research on long-term memory or event evolution, do not extract dialogue text alone. Profiles, event nodes, session IDs, and memory summaries are what distinguish CPCD from ordinary counseling corpora.</li></ol>
+
+          <h2>How to Score a System with CPCD-Bench</h2>
+          <p><strong>Benchmark tasks and history → target system responses → rubric-based Judge scores → aggregated task results.</strong></p>
+          <ol class="reading-list usage-list"><li><strong>Evaluation tasks:</strong> <a href="https://huggingface.co/datasets/EdwinUstb/CPCD-Bench" target="_blank" rel="noreferrer">CPCD-Bench</a> inputs such as profiles, counseling histories, and current questions;</li><li><strong>Target model:</strong> the system being evaluated, such as a fine-tuned Qwen model, a RAG system, or an online API;</li><li><strong>Reference answer:</strong> an author-provided answer or key information that can support factual assessment;</li><li><strong>Judge model:</strong> a model that reads the task, target response, reference information, and rubric, then returns scores and reasons. The paper uses GPT-5.2.</li></ol>
+
+          <h3>Step 1: Choose the capability</h3>
+          <ul class="reading-list"><li><strong>SRG:</strong> provide profile, memory, and current dialogue; generate the counselor's next response;</li><li><strong>MR:</strong> answer factual questions from the complete history to test cross-session memory;</li><li><strong>TCR:</strong> reconstruct event development and explain causal relationships.</li></ul>
+
+          <h3>Step 2: Choose online or offline evaluation</h3>
+          <p><strong>Online mode</strong> is for models exposed through an OpenAI-compatible API. The script reads each task, calls the target model, and then asks the Judge to score the response.</p>
+          <p><strong>Offline mode</strong> is for locally deployed or fine-tuned models. First answer every task locally and save the responses as a CSV. The evaluation script then reads those saved answers without needing access to the target model. At minimum, the CSV contains:</p>
+          <div class="paper-table-wrap"><table class="paper-table local-response-table"><caption>Example local-model response file</caption><thead><tr><th>task_id</th><th>model_response</th></tr></thead><tbody><tr><td>SRG_001</td><td>It sounds as though this exam result has made you question your ability…</td></tr><tr><td>SRG_002</td><td>You mentioned that the insomnia became more noticeable after the conflict with your roommate…</td></tr></tbody></table></div>
+
+          <h3>Step 3: Generate the CSV with a local model</h3>
+          <p>For SRG, the flow is: <strong>read one task JSON → combine profile, history, and current student utterance into a prompt → call the local model → write its answer and the original <code>task_id</code> to CSV.</strong></p>
+          <p>A local inference script typically performs six operations:</p>
+          <ol class="reading-list usage-list"><li><strong>Load the model.</strong> Read the tokenizer and weights from the local model directory, place the model on an available GPU, and switch to inference mode.</li><li><strong>Read tasks.</strong> Traverse task JSON files in <code>eval_task_info/srg</code>. Every task has a unique <code>task_id</code> and an <code>input_to_model</code> object containing the context allowed for that task.</li><li><strong>Build the prompt.</strong> Extract the profile, previous counseling history, current event, dialogue context, and latest student utterance in a fixed order, then ask only for the counselor's next response.</li><li><strong>Call the model.</strong> Apply the model's own chat template, tokenize the prompt, and generate with consistent settings—for example, a fixed maximum length and no random sampling.</li><li><strong>Extract the answer.</strong> Keep only newly generated text, remove special tokens and surrounding whitespace, and store it as <code>model_response</code>.</li><li><strong>Write rows incrementally.</strong> Save the original <code>task_id</code>, response, and status after every task so completed answers survive an interrupted run.</li></ol>
+
+          <h3>Step 4: Run online evaluation</h3>
+          <p>For SRG, this command generates responses and scores them in one run:</p>
+          <pre class="code-block"><code>python eval_task_info/srg/srg_eval_online.py \
+  --tasks "./eval_task_info/srg" \
+  --rubric "./eval_task_info/srg/rubric.md" \
+  --target-model "model/identifier" \
+  --judge-model "openai/gpt-5.2" \
+  --output "./outputs/srg_online_eval.jsonl" \
+  --csv-output "./outputs/srg_online_eval.csv" \
+  --resume</code></pre>
+          <ul class="reading-list"><li><code>--tasks</code>: task directory;</li><li><code>--rubric</code>: scoring rubric used by the Judge;</li><li><code>--target-model</code>: API identifier of the tested model;</li><li><code>--judge-model</code>: scoring model;</li><li><code>--output</code>: JSONL with per-task answers, scores, and reasons;</li><li><code>--csv-output</code>: a tabular result file;</li><li><code>--resume</code>: continue from existing results after interruption.</li></ul>
+
+          <h3>Step 5: Score locally generated responses</h3>
+          <p>If responses are already stored in <code>results/srg_my_model.csv</code>, use the offline script:</p>
+          <pre class="code-block"><code>python eval_task_info/srg/srg_eval_local.py \
+  --input-csv "./results/srg_my_model.csv" \
+  --tasks "./eval_task_info/srg" \
+  --rubric "./eval_task_info/srg/rubric.md" \
+  --judge-model "openai/gpt-5.2" \
+  --output "./outputs/srg_local_eval.jsonl" \
+  --csv-output "./outputs/srg_local_eval.csv" \
+  --resume</code></pre>
+          <p>The script matches each saved answer to its task and asks the Judge to score it.</p>
+
+          <h3>Step 6: Understand a single response score</h3>
+          <p>For one SRG response, the Judge assigns 1–5 points for empathy, coherence, and professionalism. If the scores are 4, 3, and 5, the response score is <code>(4 + 3 + 5) ÷ 3 = 4.0</code>. MR and TCR each use four dimensions and calculate their per-response averages in the same way.</p>
+
+          <h3>Step 7: Calculate the final system results</h3>
+          <p>Average every sample within the same task. For the 99 SR items: <code>system SR score = sum of the 99 item scores ÷ 99</code>. Compute MR over its 40 items and TCR over its 20 items separately. Report the result as, for example, <code>SR = 4.02, MR = 3.71, TCR = 3.28</code>.</p>
+
+          <p><strong>Paper:</strong> Chaogui Gou, <em>Psy-Chronicle: A Structured Pipeline for Synthesizing Long-Horizon Campus Psychological Counseling Dialogues</em>, arXiv:2605.22140, 2026. <a href="https://arxiv.org/abs/2605.22140" target="_blank" rel="noreferrer">Paper ↗</a> · <a href="https://github.com/EdwinUSTB/Psy-Chronicle" target="_blank" rel="noreferrer">Code and data ↗</a> · <a href="https://huggingface.co/collections/EdwinUstb/psy-chronicle" target="_blank" rel="noreferrer">Hugging Face collection ↗</a></p>
+          <div class="article-end"><a href="./">← Back to all posts</a></div>
+        </div>
+        <aside class="article-toc" aria-label="Article contents"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

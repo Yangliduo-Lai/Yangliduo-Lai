@@ -1,4 +1,5 @@
 const blogRoot=document.documentElement;
+const blogLanguage=blogRoot.lang.toLowerCase().startsWith("zh")?"zh-CN":"en-US";
 const inheritedTheme=sessionStorage.getItem("portfolio-theme");
 blogRoot.dataset.theme=inheritedTheme==="dark"?"dark":"light";
 document.querySelector(".blog-theme-toggle")?.addEventListener("click",()=>{
@@ -40,7 +41,7 @@ function updatePosts(){
         const heading=document.createElement("h2");
         heading.className="month-title";
         const monthName=document.createElement("strong");
-        monthName.textContent=date.toLocaleDateString("en-US",{month:"long"});
+        monthName.textContent=date.toLocaleDateString(blogLanguage,{month:"long"});
         const year=document.createElement("span");
         year.textContent=date.getFullYear();
         heading.append(monthName,year);
@@ -54,7 +55,7 @@ function updatePosts(){
     });
   }
   if(emptyState)emptyState.hidden=visible.length!==0;
-  if(resultStatus)resultStatus.textContent=`${visible.length} post${visible.length===1?"":"s"} shown`;
+  if(resultStatus)resultStatus.textContent=blogLanguage==="zh-CN"?`显示 ${visible.length} 篇文章`:`${visible.length} post${visible.length===1?"":"s"} shown`;
 }
 
 searchInput?.addEventListener("input",updatePosts);
