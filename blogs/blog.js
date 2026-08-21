@@ -65,3 +65,24 @@ tagButtons.forEach(button=>button.addEventListener("click",()=>{
   updatePosts();
 }));
 updatePosts();
+
+const toc=document.querySelector("[data-article-toc]");
+const articleHeadings=[...document.querySelectorAll(".article-body > h2")];
+if(toc&&articleHeadings.length){
+  articleHeadings.forEach((heading,index)=>{
+    if(!heading.id)heading.id=`section-${index+1}`;
+    const link=document.createElement("a");
+    link.href=`#${heading.id}`;
+    link.textContent=heading.textContent;
+    toc.append(link);
+  });
+
+  const links=[...toc.querySelectorAll("a")];
+  const setActive=id=>links.forEach(link=>link.classList.toggle("is-active",link.hash===`#${id}`));
+  const observer=new IntersectionObserver(entries=>{
+    const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+    if(visible[0])setActive(visible[0].target.id);
+  },{rootMargin:"-10% 0px -72%",threshold:0});
+  articleHeadings.forEach(heading=>observer.observe(heading));
+  setActive(articleHeadings[0].id);
+}
