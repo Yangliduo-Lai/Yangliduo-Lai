@@ -1,5 +1,27 @@
 const blogRoot=document.documentElement;
 const blogLanguage=blogRoot.lang.toLowerCase().startsWith("zh")?"zh-CN":"en-US";
+const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)");
+const languageTransitionKey="blog-language-transition";
+
+if(!reduceMotion.matches&&sessionStorage.getItem(languageTransitionKey)==="enter"){
+  sessionStorage.removeItem(languageTransitionKey);
+  blogRoot.classList.add("language-arriving");
+  window.setTimeout(()=>blogRoot.classList.remove("language-arriving"),220);
+}else if(!reduceMotion.matches){
+  blogRoot.classList.add("blog-arriving");
+  window.setTimeout(()=>blogRoot.classList.remove("blog-arriving"),650);
+}
+
+document.querySelector(".language-switch")?.addEventListener("click",event=>{
+  if(reduceMotion.matches||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  const destination=event.currentTarget.href;
+  sessionStorage.setItem(languageTransitionKey,"enter");
+  blogRoot.classList.add("language-leaving");
+  window.setTimeout(()=>window.location.assign(destination),120);
+});
+window.addEventListener("pageshow",()=>blogRoot.classList.remove("language-leaving"));
+
 const inheritedTheme=sessionStorage.getItem("portfolio-theme");
 blogRoot.dataset.theme=inheritedTheme==="dark"?"dark":"light";
 document.querySelector(".blog-theme-toggle")?.addEventListener("click",()=>{

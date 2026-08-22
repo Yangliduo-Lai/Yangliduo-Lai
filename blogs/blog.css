@@ -32,6 +32,11 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;transition:background .3s ease,color .3s ease}
+html.language-leaving body{opacity:0;transform:translateY(2px);transition:opacity .12s ease-out,transform .12s ease-out}
+html.language-arriving body{animation:language-arrive .18s ease-out both}
+@keyframes language-arrive{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+html.blog-arriving .blog-index-main,html.blog-arriving .post-main{animation:blog-page-arrive .56s var(--ease) both}
+@keyframes blog-page-arrive{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 a{color:inherit;text-decoration:none}
 svg{display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 ::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
@@ -120,7 +125,7 @@ svg{display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:
 @media(max-width:860px){.post-grid{grid-template-columns:1fr 1fr}.post-card:last-child{grid-column:1/-1}}
 @media(max-width:980px){.post-layout{grid-template-columns:minmax(0,760px);grid-template-areas:"toc" "body";gap:0}.article-toc{position:static;margin-top:52px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface) 58%,transparent)}.article-toc nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px}.article-body{margin-top:36px}}
 @media(max-width:600px){.blog-shell{width:min(calc(100% - 32px),1080px)}.blog-main{padding-top:62px}.post-grid{margin-top:45px;grid-template-columns:1fr}.post-card:last-child{grid-column:auto}.post-card{min-height:270px}.post-card h2{margin-top:34px}.article-toc nav{grid-template-columns:1fr}.article-body{margin-top:52px}.article-body p{font-size:16px}.blog-footer .blog-shell{align-items:flex-start;flex-direction:column}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition-duration:.01ms!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* Minimal blog index and controls. */
 button,input,select{color:inherit;font:inherit}
