@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《Fine-Tuning Language Models from Human Preferences》论文阅读笔记：从人类四选一偏好数据出发，理解奖励模型、PPO、KL 约束与在线数据收集。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>RLHF《Fine-Tuning Language Models from Human Preferences》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="fine-tuning-language-models-from-human-preferences-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <script src="../../blog.js?v=8" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>RLHF《Fine-Tuning Language Models from Human Preferences》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>RLHF</span><span>模型对齐</span></div>
+        <div class="post-byline"><time datetime="2026-09-12">2026 年 9 月 12 日</time><i></i><span>约 12 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <div class="article-body">
+          <p class="lead"><em>RLHF (Reinforcement Learning from Human Feedback) 基于人类反馈的强化学习。</em></p>
+
+          <p><strong>利用人类偏好训练 reward model，并结合 PPO 进一步优化语言模型，从而让模型生成更符合人类偏好的内容。<br></strong></p>
+
+          <h2>方法</h2>
+
+          <h3>符号与任务空间</h3>
+
+          <p>论文先用一组符号描述语言模型和它要完成的任务。这里的 <em>Σ</em> 是希腊字母大写 Sigma，表示<strong>词汇表</strong>，不是求和运算。</p>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table">
+              <caption>符号表</caption>
+              <thead><tr><th>符号</th><th>含义</th></tr></thead>
+              <tbody>
+                <tr><th><em>Σ</em></th><td>词汇表，即模型可以使用的全部词元集合</td></tr>
+                <tr><th><em>ρ</em>（rho）</th><td>语言模型</td></tr>
+                <tr><th><em>Σ<sup>n</sup></em></th><td>由词汇表中的词元组成、长度恰好为 <em>n</em> 的所有词元序列</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>语言模型 <em>ρ</em> 在词元序列 <em>Σ<sup>n</sup></em> 上定义概率分布。一条完整序列的概率，等于模型依次生成每个词元时的条件概率之积：</p>
+
+          <div class="equation" aria-label="语言模型在词元序列上的概率分布">
+            <math display="block"><mi>ρ</mi><mo>(</mo><msub><mi>x</mi><mn>0</mn></msub><mo>⋯</mo><msub><mi>x</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>)</mo><mo>=</mo><munder><mo>∏</mo><mrow><mn>0</mn><mo>≤</mo><mi>k</mi><mo>&lt;</mo><mi>n</mi></mrow></munder><mi>ρ</mi><mo>(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>|</mo><msub><mi>x</mi><mn>0</mn></msub><mo>⋯</mo><msub><mi>x</mi><mrow><mi>k</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>)</mo></math>
+          </div>
+
+          <p>例如，模型生成第三个词元时，会参考前两个词元；生成第四个词元时，会参考前三个词元。把每一步的概率乘起来，就得到整段词元序列的概率。</p>
+
+          <div class="equation" aria-label="任务的输入空间、数据分布和输出空间">
+            <math display="block"><mi>X</mi><mo>=</mo><msup><mi>Σ</mi><mrow><mo>≤</mo><mi>m</mi></mrow></msup><mo>,</mo><mspace width="1.2em"></mspace><mi>x</mi><mo>∼</mo><mi>𝒟</mi><mo>,</mo><mspace width="1.2em"></mspace><mi>Y</mi><mo>=</mo><msup><mi>Σ</mi><mi>n</mi></msup></math>
+          </div>
+
+          <ul class="reading-list">
+            <li><strong>输入空间&nbsp;</strong><em>X = Σ<sup>≤m&nbsp;</sup></em>表示输入 <em>x</em> 最多包含 <em>m</em> 个词元。</li>
+            <li><strong>数据分布&nbsp;</strong><em>𝒟</em> over <em>X&nbsp;</em>表示训练时的输入 <em>x</em> 来自输入空间 <em>X</em> 上的数据分布 <em>𝒟</em>。</li>
+            <li><strong>输出空间&nbsp;</strong><em>Y = Σ<sup>n&nbsp;</sup></em>表示输出 <em>y</em> 是长度为 <em>n</em> 的词元序列。</li>
+          </ul>
+
+          <figure class="paper-figure">
+            <a class="paper-figure-link" href="../../../assets/blog-images/fine-tuning-language-models-from-human-preferences-reading-notes/figure-1-training-process.png" target="_blank" rel="noreferrer">
+              <img src="../../../assets/blog-images/fine-tuning-language-models-from-human-preferences-reading-notes/figure-1-training-process.png" width="784" height="432" loading="lazy" alt="图 1 · 奖励模型训练与策略训练流程。截取自原论文 Figure 1；在线训练时，上下两个过程会交替进行。">
+              <span>查看原图</span>
+            </a>
+            <figcaption>图 1 · 奖励模型训练与策略训练流程。截取自<a href="https://arxiv.org/abs/1909.08593" target="_blank" rel="noreferrer">原论文 Figure 1</a>；在线训练时，上下两个过程会交替进行。</figcaption>
+          </figure>
+
+          <h3>第一步：收集人类偏好</h3>
+
+          <p>对每个上下文，原始模型生成四个候选。标注者选出其中最好的一段，系统保存上下文、四个候选和选择结果。这里没有预先写好的标准答案，也没有要求标注者解释原因。</p>
+
+          <div class="equation" aria-label="人类偏好数据集 S 的组成">
+            <math display="block"><mi>S</mi><mo>=</mo><mo>{</mo><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mn>0</mn></msub><mo>,</mo><msub><mi>y</mi><mn>1</mn></msub><mo>,</mo><msub><mi>y</mi><mn>2</mn></msub><mo>,</mo><msub><mi>y</mi><mn>3</mn></msub><mo>,</mo><mi>b</mi><mo>)</mo><mo>}</mo><mo>,</mo><mspace width="1em"></mspace><mi>b</mi><mo>∈</mo><mo>{</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>3</mn><mo>}</mo></math>
+          </div>
+
+          <p>因此，得到的数据集 <em>S</em> 由 <code>(x, y₀, y₁, y₂, y₃, b)</code> 这样的样本组成：<em>x</em> 是输入，<em>y₀</em> 到 <em>y₃</em> 是四个候选输出，<em>b</em> 是标注者选择的候选序号。例如选择第三个候选 <em>y₂</em> 时，<em>b = 2</em>。</p>
+
+          <h3>第二步：训练奖励模型</h3>
+
+          <p>奖励模型会分别给四个候选打分。假设人类选择了候选 2，模型给出的分数是：</p>
+
+          <pre class="code-block"><code>候选 0： 0.8
+候选 1：-0.1
+候选 2： 2.4  ← 人类选中
+候选 3： 0.2</code></pre>
+
+          <p>这些分数先经过 softmax，变成“每个候选会被人类选中”的概率。上面的候选 2 大约得到 72% 的概率。训练的目标很直观：<strong>让人类选中的候选获得最大的概率。</strong></p>
+
+          <div class="equation" aria-label="奖励模型的负对数似然损失">
+            <math display="block"><msub><mi>ℒ</mi><mtext>reward</mtext></msub><mo>=</mo><mo>−</mo><mi>log</mi><mfrac><mrow><mi>exp</mi><mo>(</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>b</mi></msub><mo>)</mo><mo>)</mo></mrow><mrow><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>0</mn></mrow><mn>3</mn></munderover><mi>exp</mi><mo>(</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>i</mi></msub><mo>)</mo><mo>)</mo></mrow></mfrac></math>
+          </div>
+
+          <p><em>r(x, y<sub>b</sub>)</em> 表示奖励模型给<strong>人类选中的候选回答</strong> <em>y<sub>b</sub></em> 打出的分数；<br><em>r(x, y<sub>i</sub>)</em> 表示奖励模型给第 <em>i</em> 个候选回答 <em>y<sub>i</sub></em> 打出的分数，分母会把四个候选的分数全部纳入比较。</p>
+
+          <details class="prompt-details">
+            <summary>这条公式具体在做什么？</summary>
+            <pre><code>1. r(x, yᵢ)：奖励模型给第 i 个候选的分数。
+2. exp + 求和：把四个分数转换成总和为 1 的概率。
+3. 只取人类选中的 y_b 所对应的概率。
+4. 加上 -log：如果选中项概率很低，损失很大；概率接近 1，损失接近 0。
+
+因此，反复降低这个损失，就会让奖励模型越来越像人类标注者。</code></pre>
+          </details>
+
+          
+
+          <h3>第三步：用 PPO 让语言模型追求高奖励</h3>
+
+          <p>奖励模型训练好后，当前策略 <em>π</em> 生成新文本，奖励模型给它打分，PPO 再根据分数更新 <em>π</em>。但只追求高分有一个危险：语言模型可能钻奖励模型的空子，生成奇怪却能拿高分的文本。</p>
+
+          <p>作者因此没有直接使用奖励模型的分数，而是减去一项 KL 惩罚：</p>
+
+          <div class="equation" aria-label="带 KL 约束的奖励">
+            <math display="block"><mi>R</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>−</mo><mi>β</mi><mi>log</mi><mfrac><mrow><mi>π</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow><mrow><mi>ρ</mi><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow></mfrac></math>
+          </div>
+
+          <p>可以把 KL 约束理解成一根安全绳：如果新模型生成某段文本的倾向与原始 GPT-2 相差很大，就要扣分。<em>β</em> 越大，安全绳越紧；<em>β</em> 越小，模型越敢追逐奖励。</p>
+
+          <h3>第四步：让反馈数据跟上正在变化的模型</h3>
+
+          <p>如果奖励模型只见过原始 GPT-2 的输出，随着策略不断更新，它迟早会遇到训练时没见过的文本。这时奖励模型的分数可能不可靠，策略却会继续放大这些错误。</p>
+
+          <div class="stage-grid">
+            <section><span>Collect</span><h3>当前策略生成候选</h3><p>不再只使用原始 GPT-2，而是让正在训练的模型提供新样本。</p></section>
+            <section><span>Label</span><h3>人类继续四选一</h3><p>标注者比较模型当前真正会生成的文本，把新偏好加入数据集。</p></section>
+            <section><span>Retrain</span><h3>重新训练奖励模型</h3><p>更新评分标准后继续 PPO，减少策略与奖励模型之间的分布偏移。</p></section>
+          </div>
+
+          <p>论文把只收集一次数据称为 <strong>offline</strong>，把上面的循环称为 <strong>online</strong>。实验共进行了 2M 个 PPO episodes；在线设置还周期性重训奖励模型，连同初始版本一共训练 20 次。</p>
+
+          <h2>实验</h2>
+
+          <p>作者围绕四个任务提问：少量人类选择能否改变模型风格？学到的奖励能否支持摘要生成？在线反馈是否真的有必要？</p>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table task-table">
+              <caption>论文实验的主线与结果</caption>
+              <thead><tr><th>任务</th><th>偏好数据</th><th>代表性结果</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><th>正面情感续写</th><td>5,000 次四选一比较</td><td>相对 zero-shot GPT-2，人类有 <strong>88%</strong> 的时候更喜欢微调结果</td><td>少量反馈足以改变明确的风格属性</td></tr>
+                <tr><th>生动描写续写</th><td>5,000 次四选一比较</td><td>相对 zero-shot GPT-2，偏好率为 <strong>86%</strong></td><td>方法也能学习没有现成分类器的主观属性</td></tr>
+                <tr><th>Reddit TL;DR 摘要</th><td>最多 60,000 次比较</td><td>60k online 模型相对 offline 模型的偏好率为 <strong>64%</strong></td><td>模型变化后，继续收集新反馈很重要</td></tr>
+                <tr><th>CNN/Daily Mail 摘要</th><td>最多 60,000 次比较</td><td>60k online 模型相对 offline 模型的偏好率为 <strong>65%</strong></td><td>同样受益于在线数据，但学会了大量复制原文</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>风格任务：5,000 次选择已经很有效</h3>
+
+          <p>在风格任务中，模型先读 BookCorpus 的 32–64 个 token，再续写 24 个 token。仅用 5,000 次人类比较，正面情感和生动描写就获得了明显偏好。继续增加到 20,000 次或改用在线收集，并没有带来稳定优势。</p>
+
+          <p>论文还用一个情感分类器模拟已知奖励，再把从比较数据学到的奖励与它对照。结果说明，大约 20k–60k 次偏好查询可以较好地逼近直接使用分类器奖励的训练，不过在 2M 次续写后仍存在差距。</p>
+
+          <h3>摘要任务：表面胜利掩盖了“聪明复制”</h3>
+
+          <p>摘要结果一眼看上去非常强：60k online 模型相对 zero-shot GPT-2 的偏好率，在 TL;DR 上达到 96%，在 CNN/Daily Mail 上达到 91%；甚至相对数据集里的参考摘要也分别达到 96% 和 84%。</p>
+
+          <p>但另一个基线暴露了问题：简单截取文章前三句的 <strong>lead-3</strong>，同样大幅胜过参考摘要，而且还能胜过 RL 模型。作者进一步发现，RL 模型在 TL;DR 中有 71% 的句子直接复制自输入，在 CNN/Daily Mail 中这一比例达到 98%。它学到的不是理想的摘要方式，而是一个容易获得“准确、少遗漏”偏好的捷径。</p>
+
+          <p>这不代表人类反馈没有作用。作者人工检查后认为，纯 RL 模型生成的摘要大多准确；问题在于标注规范要求惩罚错误和重复，却没有惩罚复制。模型非常忠实地优化了被标注者奖励的属性，只是这个属性集合并不完整。</p>
+
+          <h2>挑战</h2>
+
+          <ul class="reading-list">
+            <li><strong>偏好不是客观真值：</strong>作者之间对四选一任务的平均一致率约为 60%，明显高于随机选择的 25%，但离完全一致仍很远；作者与外部标注者的一致率在情感任务上为 38%，在 TL;DR 上为 46%。</li>
+            <li><strong>在线训练昂贵而复杂：</strong>当前策略生成数据、人工标注、重训奖励模型和继续 PPO 形成了长反馈链，任何环节都可能延迟下一轮实验。</li>
+            <li><strong>奖励模型会遇到分布偏移：</strong>摘要任务里 online 明显胜过 offline，说明固定奖励模型无法一直可靠评价不断变化的策略。</li>
+            <li><strong>实现错误会被模型放大：</strong>一次代码重构同时翻转了奖励和 KL 项的符号，模型没有变成随机乱码，而是学会生成流畅但与目标完全相反的内容。这说明训练曲线正常并不等于目标写对了。</li>
+          </ul>
+
+          
+
+          <p>读到这里，这篇论文的意义就比较清楚了：人类比较确实能为难以形式化的语言任务提供训练信号；但从“人类在几个候选里选了它”到“它真正符合我们的意图”，中间仍隔着标注设计、数据分布和奖励投机三道关。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

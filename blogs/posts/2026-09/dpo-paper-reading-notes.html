@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《Direct Preference Optimization》论文阅读笔记：从 RLHF 背景出发，用一个具体例子理解 DPO 的核心方法、训练过程、实验结论与局限。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>DPO《Direct Preference Optimization: Your Language Model is Secretly a Reward Model》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="dpo-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>DPO《Direct Preference Optimization: Your Language Model is Secretly a Reward Model》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>模型对齐</span><span>DPO</span></div>
+        <div class="post-byline"><time datetime="2026-09-11">2026 年 9 月 11 日</time><i></i><span>约 10 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇是 <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noreferrer"><em>Direct Preference Optimization: Your Language Model is Secretly a Reward Model</em></a>的阅读笔记。</p>
+
+
+          <p>传统 RLHF 把学习人类偏好拆成两件事：先训练 reward model 学会打分，再用 PPO 让语言模型追求高分。DPO 则证明，在论文采用的数学假设下，这两件事可以合并成一次普通的语言模型训练。</p>
+
+          <h2>方法</h2><p>让我们跳过复杂的推导过程，直接看最终 DPO Loss 吧。<br></p>
+
+          <div class="equation" aria-label="DPO 最终损失函数">
+            <math display="block">
+              <mrow>
+                <msub><mi>ℒ</mi><mtext>DPO</mtext></msub>
+                <mo>(</mo><msub><mi>π</mi><mi>θ</mi></msub><mo>;</mo><msub><mi>π</mi><mtext>ref</mtext></msub><mo>)</mo>
+                <mo>=</mo><mo>−</mo>
+                <msub>
+                  <mi>𝔼</mi>
+                  <mrow>
+                    <mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>w</mi></msub><mo>,</mo><msub><mi>y</mi><mi>l</mi></msub><mo>)</mo>
+                    <mo>∼</mo><mi>𝒟</mi>
+                  </mrow>
+                </msub>
+                <mo>[</mo>
+                <mi mathvariant="normal">log</mi><mi>σ</mi><mo>(</mo>
+                <mi>β</mi><mi mathvariant="normal">log</mi>
+                <mfrac>
+                  <mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msub><mi>y</mi><mi>w</mi></msub><mo>|</mo><mi>x</mi><mo>)</mo></mrow>
+                  <mrow><msub><mi>π</mi><mtext>ref</mtext></msub><mo>(</mo><msub><mi>y</mi><mi>w</mi></msub><mo>|</mo><mi>x</mi><mo>)</mo></mrow>
+                </mfrac>
+                <mo>−</mo>
+                <mi>β</mi><mi mathvariant="normal">log</mi>
+                <mfrac>
+                  <mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msub><mi>y</mi><mi>l</mi></msub><mo>|</mo><mi>x</mi><mo>)</mo></mrow>
+                  <mrow><msub><mi>π</mi><mtext>ref</mtext></msub><mo>(</mo><msub><mi>y</mi><mi>l</mi></msub><mo>|</mo><mi>x</mi><mo>)</mo></mrow>
+                </mfrac>
+                <mo>)</mo><mo>]</mo>
+              </mrow>
+            </math>
+          </div>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table">
+              <caption>DPO 最终损失函数中的符号</caption>
+              <thead><tr><th>符号</th><th>含义</th></tr></thead>
+              <tbody>
+                <tr><th><em>π<sub>θ</sub></em></th><td>正在训练的语言模型，也叫策略模型。</td></tr>
+                <tr><th><em>θ</em></th><td><em>π<sub>θ</sub></em> 中需要通过训练更新的模型参数。</td></tr>
+                <tr><th><em>π<sub>ref</sub></em></th><td>冻结的参考模型，通常是 DPO 训练开始前的 SFT 模型；它的参数不更新。</td></tr>
+                <tr><th><em>x</em></th><td>输入给模型的 prompt，也就是问题或上下文。</td></tr>
+                <tr><th><em>y<sub>w</sub></em></th><td>偏好数据中人类更喜欢的回答；下标 <em>w</em> 表示 winner。</td></tr>
+                <tr><th><em>y<sub>l</sub></em></th><td>偏好数据中人类不喜欢的回答；下标 <em>l</em> 表示 loser。</td></tr>
+                <tr><th><em>𝒟</em></th><td>偏好数据集；每条数据都是一个三元组 <em>(x, y<sub>w</sub>, y<sub>l</sub>)</em>。</td></tr>
+                <tr><th><em>log(π<sub>θ</sub> / π<sub>ref</sub>)</em></th><td>当前模型相对参考模型对某个回答的偏好变化：值越大，表示当前模型比参考模型更愿意生成该回答。</td></tr>
+                <tr><th><em>β</em></th><td>控制模型偏离参考模型程度的正超参数；它来自原始目标中的 KL 约束，越大通常表示约束越强。</td></tr>
+                <tr><th><em>−log σ(·)</em></th><td>负对数损失；当模型更偏向 <em>y<sub>w</sub></em> 而不是 <em>y<sub>l</sub></em> 时，这个损失会变小。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <figure class="paper-figure">
+            <a class="paper-figure-link" href="../../../assets/blog-images/dpo-rlhf-comparison.png" target="_blank" rel="noreferrer" aria-label="打开 RLHF 与 DPO 训练流程对比图原图">
+              <img src="../../../assets/blog-images/dpo-rlhf-comparison.png" width="2380" height="478" loading="lazy" alt="RLHF 与 DPO 训练流程对比：RLHF 先训练奖励模型，再通过强化学习训练语言模型；DPO 直接使用偏好数据训练最终语言模型。">
+              <span>查看原图 ↗</span>
+            </a>
+            <figcaption>图 1 · RLHF 与 DPO 的训练流程对比。DPO 跳过了显式奖励模型和强化学习阶段，直接用偏好数据优化语言模型。</figcaption>
+          </figure>
+
+          <h3>DPO 训练 Pipeline</h3>
+
+          <ol class="reading-list">
+            <li><strong>准备模型：</strong>从同一个 SFT 模型得到两份模型。<em>π<sub>ref</sub></em> 作为冻结的参考模型，<em>π<sub>θ</sub></em> 作为需要更新的策略模型。</li>
+            <li><strong>准备偏好数据：</strong>对于每个输入 <em>x</em>，收集两个回答并由人类选出更好的回答 <em>y<sub>w</sub></em> 和较差的回答 <em>y<sub>l</sub></em>，组成数据集 <em>𝒟 = {(x, y<sub>w</sub>, y<sub>l</sub>)}</em>。</li>
+            <li><strong>直接优化策略模型：</strong>分别计算 <em>π<sub>θ</sub></em> 和 <em>π<sub>ref</sub></em> 对 <em>y<sub>w</sub></em>、<em>y<sub>l</sub></em> 的概率，代入上面的 DPO 损失并反向传播，只更新 <em>θ</em>。训练完成后的 <em>π<sub>θ</sub></em> 就是最终模型。</li>
+          </ol>
+
+          <h2>实验</h2>
+
+          <p>论文按难度逐步验证三个问题：它能否正确优化 RLHF 目标、能否处理真实人类偏好、能否迁移到训练分布之外。</p>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table task-table">
+              <caption>论文实验的主线</caption>
+              <thead><tr><th>要回答的问题</th><th>实验设置</th><th>主要结果</th></tr></thead>
+              <tbody>
+                <tr><th>1. DPO 真的会兼顾奖励和 KL 吗？</th><td>IMDb 情感控制；GPT-2-large；情感分类器提供已知奖励</td><td>DPO 得到最优的 reward–KL 前沿。论文报告其权衡优于 PPO，甚至优于直接使用真实奖励的 PPO-GT。</td></tr>
+                <tr><th>2. 面对真实偏好数据还有效吗？</th><td>Reddit TL;DR 摘要；同一个 GPT-J SFT 起点；GPT-4 评价</td><td>温度为 0 时，DPO 对参考摘要的胜率约为 61%，PPO 的最佳结果约为 57%。DPO 对采样温度也更稳定。</td></tr>
+                <tr><th>3. 对话任务上表现怎样？</th><td>Anthropic HH 单轮对话；Pythia-2.8B；170k 条带偏好标签的对话</td><td>DPO 是实验中唯一超过测试集 preferred responses 的计算高效方法，并达到或超过 Best of 128 的最佳表现。</td></tr>
+                <tr><th>4. 换一种输入还能工作吗？</th><td>把 TL;DR 训练出的策略直接用于 CNN/DailyMail 新闻摘要</td><td>温度为 0 / 0.25 时，DPO 胜率为 0.36 / 0.31，PPO 为 0.26 / 0.23。这只是初步的分布外证据。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>这些结果应该怎样理解？</h3>
+
+          <p>在论文的实验范围内，DPO 用更简单的训练链路取得了与 PPO 相当或更好的结果。TL;DR 的人工比较也显示，DPO 回答有 58% 的时候胜过 PPO 回答。这支持了论文最核心的判断：偏好学习不一定非要经过“显式奖励模型 + 强化学习”。</p>
+
+          <p>但这些实验不能证明 DPO 在所有任务上都优于 PPO。论文测试的模型最大为 6B 参数；摘要和对话主要由 GPT-4 评价，而且作者发现评价 prompt 会影响结果；CNN/DailyMail 也只提供了一次有限的分布外测试。</p>
+
+          <p>DPO 还继承了偏好数据本身的限制。如果标注者因为回答更长、语气更礼貌而选择 A，模型可能把这些表面特征学成“偏好”。Bradley–Terry 假设还把复杂的人类判断压缩成一个分数差，无法完整表示标注者之间的分歧或互相矛盾的价值。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

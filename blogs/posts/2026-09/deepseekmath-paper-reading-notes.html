@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models》阅读笔记：数学语料、继续预训练、SFT、GRPO 与实验结果。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>GRPO《Pushing the Limits of Mathematical Reasoning in Open Language Models》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="deepseekmath-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4-1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>GRPO《Pushing the Limits of Mathematical Reasoning in Open Language Models》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>数学推理</span><span>GRPO</span></div>
+        <div class="post-byline"><time datetime="2026-09-13">2026 年 9 月 13 日</time><i></i><span>约 9 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇笔记阅读 Shao 等人的论文 <a href="https://arxiv.org/html/2402.03300" target="_blank" rel="noreferrer"><em>DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</em></a>。它常因 GRPO 被提起，但论文真正讲的是一条完整的训练链：<strong>从代码模型出发，补充数学数据，再用示范解答和强化学习提升数学解题能力。</strong></p>
+
+          <h2>贡献</h2>
+
+          <ol class="reading-list">
+            <li><strong>把公开网页变成大规模数学训练语料。</strong>作者从 Common Crawl 中迭代筛选出约 120B token 的数学网页内容，证明数学数据不只来自教材和论文。</li>
+            <li><strong>提出 GRPO。</strong>它让同一道题的多个回答彼此比较，用组内分数估计优势，不再训练 PPO 所需的独立价值模型（critic）。</li>
+            <li><strong>展示数据与训练方法的组合效果。</strong>最终的 DeepSeekMath-RL 7B 在论文的无工具、无投票设置下取得 MATH 51.7% 的准确率；这个结果属于整条训练链，不能只记在 GRPO 名下。</li>
+          </ol>
+
+          <h2>背景</h2>
+
+          <p>数学解题要求模型理解题意、连续推导并给出可核对的答案。论文写作时，开放权重模型在 MATH 等基准上明显落后于性能最强的闭源模型。作者把改进路径拆成两个问题：<strong>模型是否读过足够多、足够好的数学内容</strong>，以及<strong>有了解题能力后，怎样让它更常生成正确的解法</strong>。</p>
+
+          <p>第一个问题对应数学继续预训练和 SFT；第二个问题对应强化学习。传统 PPO 在策略模型之外还要训练一个价值模型来估计“这一步回答有多好”，对大语言模型而言会增加训练负担。GRPO 要解决的正是这部分负担，而不是取代前面的数据建设。</p>
+
+          <h2>方法：沿着三阶段训练链看</h2>
+
+          <p><strong>DeepSeek-Coder-Base-v1.5 7B → DeepSeekMath-Base 7B → DeepSeekMath-Instruct 7B → DeepSeekMath-RL 7B。</strong>第一个箭头是数学继续预训练，第二个是监督微调（SFT），第三个才是以 GRPO 为核心的强化学习。</p>
+
+          <h3>第一阶段：筛选数学网页，继续预训练</h3>
+
+          <p>作者先以 OpenWebMath 作为数学网页的种子，用 fastText 分类器从 Common Crawl 找相似页面；再根据已找到的数学站点扩充种子、重新筛选。经过四轮迭代，得到约 3550 万个网页、120B token 的 DeepSeekMath Corpus。训练前还用与评测题目匹配的文本片段过滤语料，以降低基准污染风险。<a href="https://arxiv.org/html/2402.03300#S2.SS1" target="_blank" rel="noreferrer">论文 §2.1</a></p>
+
+          <p>DeepSeekMath-Base 7B 不是从零开始训练，而是从代码模型 DeepSeek-Coder-Base-v1.5 7B 出发，继续读取总计 <strong>500B 训练 token</strong>：其中 56% 来自 DeepSeekMath Corpus，其余混入数学代码、arXiv、GitHub 代码和中英文通用文本。<strong>120B 是筛出的数学语料规模，500B 是这次混合继续预训练处理的 token 总量，两个数字不是同一件事。</strong><a href="https://arxiv.org/html/2402.03300#S2.SS3" target="_blank" rel="noreferrer">论文 §2.3</a></p>
+
+          <h3>第二阶段：用示范解答做 SFT</h3>
+
+          <p>有数学语料的 Base 模型还不一定会按题目要求完整作答。作者整理了 <strong>77.6 万条</strong>中英文数学指令样本，让模型模仿三类解答：用文字逐步推理（CoT）、写程序辅助求解（PoT），以及在推理中结合工具。训练后得到 DeepSeekMath-Instruct 7B。这里的 SFT 可以理解为：给定题目，学习示范解答中下一步该写什么。<a href="https://arxiv.org/html/2402.03300#S3" target="_blank" rel="noreferrer">论文 §3</a></p>
+
+          <h3>第三阶段：从 PPO 改为 GRPO</h3>
+
+          <p><strong>GRPO</strong> 的全称是 <em>Group Relative Policy Optimization</em>，即“组相对策略优化”。一句话说，它<strong>保留 PPO 的裁剪式策略更新，但不用另训一个价值模型（critic）；同一道题生成多条回答后，用这些回答的相对得分代替 critic 提供的优势估计。</strong>这里的“优势”就是“这条回答相对参照有多值得鼓励”。<a href="https://arxiv.org/html/2402.03300#S4.SS1" target="_blank" rel="noreferrer">论文 §4.1</a></p>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>论文中的 PPO 与 GRPO：改了什么，保留了什么</caption><thead><tr><th>环节</th><th>PPO</th><th>GRPO</th></tr></thead><tbody>
+            <tr><th>优势从哪里来</th><td>另训 critic 预测价值，再结合奖励计算每个 token 的优势。</td><td>同题采样一组回答，按组内奖励的平均值和标准差计算相对优势；不训练 critic。</td></tr>
+            <tr><th>KL 约束放在哪里</th><td>论文所比较的 LLM PPO 做法把偏离参考模型的惩罚加进逐 token 奖励。</td><td>直接把 KL 惩罚放进策略优化目标，不混入组内优势计算。</td></tr>
+            <tr><th>哪些机制保留</th><td>用旧策略生成回答，奖励模型打分；用新旧策略的概率比和裁剪限制更新。</td><td>这些机制仍在，另有参考模型约束更新；“不用 critic”不等于“不用奖励模型”。</td></tr>
+          </tbody></table></div>
+
+          <p>例如，同一道题的四条回答分别得 0.9、0.7、0.2、0.1 分（仅为示意）。组内平均分是 0.475：前两条相对更好，后两条相对更差。GRPO 把这种相对好坏转换为优势，而不是为每个 token 训练一个价值预测器。论文的<strong>结果监督</strong>版本将一条回答的组内优势用于该回答的所有 token：</p>
+
+          <div class="equation" aria-label="GRPO 结果监督的组内相对优势"><math display="block"><mrow><msub><mover><mi>A</mi><mo>^</mo></mover><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>r</mi><mi>i</mi></msub><mo>−</mo><mtext>mean</mtext><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>r</mi><mi>G</mi></msub><mo>)</mo></mrow><mrow><mtext>std</mtext><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>r</mi><mi>G</mi></msub><mo>)</mo></mrow></mfrac></mrow></math></div>
+
+          <p><em>G</em> 是同题回答数，<em>r<sub>i</sub></em> 是第 <em>i</em> 条回答的奖励，<em>mean</em> 和 <em>std</em> 是这一组的平均值和标准差。正优势推动模型提高该回答的概率，负优势则推动它降低概率。论文还讨论了<strong>过程监督</strong>版本：它给推理步骤评分，优势不再是整条回答共用一个数；上式专指结果监督版本。<a href="https://arxiv.org/html/2402.03300#S4.SS1.SSS2" target="_blank" rel="noreferrer">论文 §4.1.2–4.1.3</a></p>
+
+          <p><strong>GRPO 训练 pipeline（以结果监督版本和论文的采样设置为例）</strong></p>
+
+          <ol class="reading-list">
+            <li><strong>准备模型与题目。</strong>以 DeepSeekMath-Instruct 7B 初始化要训练的策略模型；另有给完整回答打分的奖励模型（训练数据依据答案正确性规则构造），以及用于 KL 约束的参考模型（通常是固定的 SFT 起点）。论文从 SFT 数据中的 GSM8K、MATH 部分取约 14.4 万道英文 CoT 题目；没有 critic。</li>
+            <li><strong>用旧策略采样。</strong>先把当前策略复制为本轮固定的“旧策略” <em>π<sub>old</sub></em>，再让它对每道题生成一组回答。论文实际设置为<strong>每题 64 条</strong>。旧策略负责提供本轮更新的采样基准，不是奖励模型，也不同于约束偏移的参考模型。</li>
+            <li><strong>评分并求组内优势。</strong>奖励模型为每条回答打分；对同一道题的 64 个分数减去组内平均、再除以组内标准差，得到上式的相对优势。这样比较的是<strong>同一道题的回答之间</strong>，不是拿不同题目的原始分数直接比。</li>
+            <li><strong>更新策略。</strong>对回答中的每个 token，比较当前策略和旧策略给它的概率，得到比值 <em>ρ</em>。沿用 PPO 的裁剪目标：优势为正时倾向于提高该回答的概率，为负时倾向于降低；在目标函数中裁剪概率比的贡献，抑制过大的更新。再直接从优化目标中扣除相对参考模型的 KL 惩罚。论文主模型每轮采样后只更新策略一次。</li>
+            <li><strong>重新采样，继续训练。</strong>下一轮刷新旧策略，重新生成当前模型能给出的回答，再打分、计算优势、更新。论文还研究了迭代版：额外重训奖励模型并刷新参考模型；那是进一步探索，不能混同于上面这条基本流程。</li>
+          </ol>
+
+          <p>其中 <em>ρ</em> 是“当前策略给某个已采样 token 的概率 ÷ 本轮旧策略给它的概率”；裁剪参数 <em>ε</em> 控制单次更新幅度，KL 系数 <em>β</em> 控制偏离参考模型的代价。<strong>旧策略</strong>用来比较更新前后，<strong>参考模型</strong>用来防止长期跑偏，<strong>奖励模型</strong>负责打分：三者作用不同。<a href="https://arxiv.org/html/2402.03300#S4.SS1" target="_blank" rel="noreferrer">论文公式 (3)</a></p>
+
+          <div class="article-callout"><p><strong>节省的主要是 critic 的显存与训练开销，不是所有成本。</strong>GRPO 仍要运行奖励模型，也要为同一题生成多个候选回答；论文报告的每题 64 条是其具体实验设置，不是 GRPO 的固定要求。<a href="https://arxiv.org/html/2402.03300#S4.SS2" target="_blank" rel="noreferrer">论文 §4.2</a></p></div>
+
+          <h2>实验：每个阶段带来了什么</h2>
+
+          <p>先看数学继续预训练：在论文的 few-shot CoT 评测中，DeepSeekMath-Base 7B 的 GSM8K 为 <strong>64.2%</strong>、MATH 为 <strong>36.2%</strong>。这是 Base 模型的评测设置，不应直接与下面指令模型的结果当作同条件消融比较。<a href="https://arxiv.org/html/2402.03300#S2.SS3" target="_blank" rel="noreferrer">论文表 2</a></p>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>论文表 5：不使用工具、单次回答的数学解题准确率</caption><thead><tr><th>模型</th><th>GSM8K</th><th>MATH</th><th>CMATH</th></tr></thead><tbody>
+            <tr><th>DeepSeekMath-Instruct 7B（SFT 后）</th><td>82.9%</td><td>46.8%</td><td>84.6%</td></tr>
+            <tr><th>DeepSeekMath-RL 7B（GRPO 后）</th><td>88.2%</td><td>51.7%</td><td>88.8%</td></tr>
+          </tbody></table></div>
+
+          <p>相对 Instruct，RL 模型在 MATH 上提高 <strong>4.9 个百分点</strong>，在 GSM8K 上提高 <strong>5.3 个百分点</strong>。CMATH 也提高 <strong>4.2 个百分点</strong>，尽管这阶段的 RL 训练题目来自英文 GSM8K 和 MATH。论文还比较了在线与离线采样、结果与过程监督：在其设置中，在线采样更有利，过程监督版本也优于结果监督版本；但表中的主模型结果不能被读成“所有 GRPO 实现都会有同样提升”。<a href="https://arxiv.org/html/2402.03300#S5.SS2" target="_blank" rel="noreferrer">论文 §5.2</a></p>
+
+          <p>一个值得保留的边界是：作者发现 RL 提高了多次采样后的多数票准确率（Maj@K），却没有提高“采 K 次至少有一次正确”的 Pass@K。在这些实验中，这更像是<strong>让已有的正确解法更常成为主要输出</strong>，不能据此断言模型获得了全新的数学推理能力。论文也承认几何和定理证明仍较弱。<a href="https://arxiv.org/html/2402.03300#S5.SS2.SSS2" target="_blank" rel="noreferrer">论文 §5.2.2</a></p>
+
+          <p><strong>读完这篇论文最该记住的不是单个 51.7%，而是它的因果顺序：数学数据提升底座，SFT 教模型按题目给出解答，GRPO 再提高正确回答的相对概率。</strong>各阶段作用不同，最终成绩来自它们的组合。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《Training language models to follow instructions with human feedback》阅读笔记：InstructGPT 的贡献、SFT—奖励模型—PPO 训练流程、PPO-ptx、实验结果与局限。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>InstructGPT《Training language models to follow instructions with human feedback》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="instructgpt-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4-1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>InstructGPT《Training language models to follow instructions with human feedback》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>RLHF</span><span>模型对齐</span></div>
+        <div class="post-byline"><time datetime="2026-09-13">2026 年 9 月 13 日</time><i></i><span>约 10 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇笔记讨论 Ouyang 等人 2022 年的论文 <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noreferrer"><em>Training language models to follow instructions with human feedback</em></a>。论文把用人类反馈微调 GPT-3 后得到的模型称为 <strong>InstructGPT</strong>。</p>
+
+          <p>先记住它要回答的核心问题：<strong>一个擅长预测下一个词的大模型，怎样学会按照人的指令做事？</strong>论文的答案不是单纯扩大参数，而是依次让模型看人写的示范、学习人对回答的偏好，再利用这个偏好信号继续训练。</p>
+
+          <h2>贡献</h2>
+
+          <ol class="reading-list">
+            <li><strong>把 RLHF 用于广泛的真实指令任务。</strong>此前相关研究已把人类偏好用于风格续写、摘要等任务；本文把范围扩展到用户提交的生成、问答、改写、聊天等多种指令。</li>
+            <li><strong>展示“更会遵循指令”不等于“参数更多”。</strong>在论文的人工评测中，1.3B 参数 InstructGPT 的回答比 175B 参数原始 GPT-3 的回答更受偏好。</li>
+            <li><strong>指出并缓解对齐税。</strong>只做 RLHF 会让一些公开 NLP 基准成绩下降；在 PPO 更新中混入预训练目标后，可以大幅减轻这类退化，同时保留人类偏好方面的收益。</li>
+          </ol>
+
+          <h2>背景</h2>
+
+          <p>GPT-3 预训练时学的是“给定前文，预测互联网上接下来可能出现的文本”。用户要的却是“理解我的意图，给出有帮助、尽量真实且安全的回答”。这两个目标并不相同：模型即使能续写出流畅文字，也可能答非所问、编造事实或输出不合适的内容。</p>
+
+          <p>论文把对齐近似看成三个方向：<strong>有帮助</strong>（完成用户任务）、<strong>诚实</strong>（不误导）、<strong>无害</strong>（避免造成伤害）。但这些标准很难直接写成一个可计算的评分函数，因此作者使用经过筛选和培训的标注者给出示范与偏好，再让模型学习这些判断。</p>
+
+          <h2>方法：从 GPT-3 到 InstructGPT</h2>
+
+          <p>整个流程按顺序是 <strong>GPT-3 → SFT 模型 → 奖励模型 → PPO 优化后的模型</strong>。这里“奖励模型”负责估计人更喜欢哪个回答；“PPO”负责利用这个分数更新真正要使用的语言模型。它们不是同一个模型。</p>
+
+          <h3>第一步：收集示范，训练 SFT 模型</h3>
+
+          <p>作者从 OpenAI API Playground 的提示词和标注者自己编写的提示词出发，请标注者写出希望模型生成的回答。再把每条“提示词 → 示范回答”当作监督学习样本，微调预训练 GPT-3。得到的模型叫 <strong>SFT</strong>（监督微调）模型。</p>
+
+          <p>这一步相当于先让模型模仿一批好回答，为后续训练提供可用的起点。论文约有 <strong>13,000 条 SFT 训练提示词</strong>。</p>
+
+          <h3>第二步：给回答排序，训练奖励模型</h3>
+
+          <p>对同一个提示词，让模型生成多个回答；标注者把回答从较好到较差排序。论文每次展示 <em>K = 4～9</em> 个回答，然后把排序转换成回答之间的成对比较。奖励模型 <em>r(x, y)</em> 输入提示词 <em>x</em> 和回答 <em>y</em>，输出一个分数。</p>
+
+          <div class="equation" aria-label="奖励模型的成对偏好概率">
+            <math display="block"><mrow><mi>P</mi><mo>(</mo><msub><mi>y</mi><mi>w</mi></msub><mo>≻</mo><msub><mi>y</mi><mi>l</mi></msub><mo>|</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi>σ</mi><mo>(</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>w</mi></msub><mo>)</mo><mo>−</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>l</mi></msub><mo>)</mo><mo>)</mo></mrow></math>
+          </div>
+
+          <p>其中 <em>y<sub>w</sub></em> 是更受偏好的回答，<em>y<sub>l</sub></em> 是较差的回答；<em>≻</em> 表示“优于”；<em>σ</em> 把两个分数之差转换为 0 到 1 之间的概率。训练时让模型给人选择的回答更高分。论文约有 <strong>33,000 条奖励模型训练提示词</strong>；一条提示词可产生多组比较，因此不能把 33,000 误读为比较对数。</p>
+
+          <h3>第三步：用 PPO 优化语言模型</h3>
+
+          <p>从 SFT 模型出发，针对提示词生成新回答，让奖励模型给回答打分，再用 PPO 更新生成回答的策略。论文的 PPO 训练提示词约有 <strong>31,000 条</strong>，这一组提示词本身没有人工回答标签；训练信号来自奖励模型，而不是对每个新回答重新请人打分。</p>
+
+          <p>如果只追求奖励模型给出的高分，语言模型可能学会钻评分器的空子。作者因此加入相对 SFT 模型的 <strong>KL 惩罚</strong>：新模型可以改进，但不要偏离起点太远。用一句简化的式子表示，优化方向是：</p>
+
+          <div class="equation" aria-label="InstructGPT 的奖励与参考模型约束">
+            <math display="block"><mrow><mi>R</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo><mi>r</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>−</mo><mi>β</mi><mi mathvariant="normal">log</mi><mfrac><mrow><msub><mi>π</mi><mtext>RL</mtext></msub><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow><mrow><msub><mi>π</mi><mtext>SFT</mtext></msub><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow></mfrac></mrow></math>
+          </div>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>这一步公式中的符号</caption><thead><tr><th>符号</th><th>含义</th></tr></thead><tbody>
+            <tr><th><em>x</em>、<em>y</em></th><td>提示词和策略模型生成的完整回答。</td></tr>
+            <tr><th><em>r(x, y)</em></th><td>奖励模型对这条回答的评分。</td></tr>
+            <tr><th><em>π<sub>RL</sub>(y | x)</em></th><td>正在通过 PPO 更新的模型生成回答 <em>y</em> 的概率。</td></tr>
+            <tr><th><em>π<sub>SFT</sub>(y | x)</em></th><td>固定的 SFT 参考模型生成同一回答的概率。</td></tr>
+            <tr><th><em>β</em></th><td>控制偏离参考模型的惩罚强度；越大，越不愿意远离 SFT 模型。</td></tr>
+            <tr><th><em>R(x, y)</em></th><td>奖励分数减去偏离参考模型的代价。式子用回答级对数概率比概括论文目标；实现中 KL 惩罚逐 token 加入。</td></tr>
+          </tbody></table></div>
+
+          <p>这里的 PPO 是具体的策略优化算法；若想看它的裁剪目标如何限制新旧策略的更新幅度，可接着看 <a href="ppo-paper-reading-notes.html">PPO 原论文阅读笔记</a>。注意：PPO 的“新旧策略比率”和这里相对 <em>π<sub>SFT</sub></em> 的 KL 约束是两个不同的比较。</p>
+
+          <h3>PPO-ptx：为什么还要混入预训练数据？</h3>
+
+          <p>作者发现，经过 RLHF 后，模型在 SQuAD、DROP、HellaSwag 等公开任务上可能退步。他们在 PPO 训练时额外加入一项任务：继续提高模型对原预训练文本的预测概率。这个变体叫 <strong>PPO-ptx</strong>；<em>ptx</em> 指预训练数据。它不是第四个单独训练阶段，而是在第三步中同时保留一部分原有语言建模能力。</p>
+
+          <p>论文把没有这项预训练混合的模型叫 <strong>PPO</strong>，带混合的叫 <strong>PPO-ptx</strong>；除非特别说明，文中的 InstructGPT 通常指 PPO-ptx。预训练混合减轻了公开基准上的性能退化，但也意味着这项结果不能简单归因于“只做 PPO”。</p>
+
+          <h2>实验：论文实际证明了什么</h2>
+
+          <p>作者训练了 1.3B、6B、175B 三种规模的模型。主要评测是在来自未参与训练的客户的提示词上，让标注者比较回答；还辅以 TruthfulQA、RealToxicityPrompts 和公开 NLP 基准。下面的结果都应放在这些评测条件下理解。</p>
+
+          <div class="paper-table-wrap"><table class="paper-table task-table"><caption>论文的几项关键结果</caption><thead><tr><th>问题</th><th>论文结果</th><th>应该怎样理解</th></tr></thead><tbody>
+            <tr><th>人更喜欢哪个回答？</th><td>1.3B InstructGPT 的回答比 175B 原始 GPT-3 的回答更受偏好。175B InstructGPT 对同规模 GPT-3 的偏好胜率为 85 ± 3%；对加了 few-shot 引导的 GPT-3 为 71 ± 4%。</td><td>针对“遵循指令”这一目标，针对性训练可以比单纯扩大参数更有效；这不是说小模型在所有能力上全面超越大模型。</td></tr>
+            <tr><th>真实性有没有改善？</th><td>在 TruthfulQA 上，论文报告“真实且有信息量”的回答约为 GPT-3 的两倍；在闭域任务中，编造输入之外信息的比例约为 21%，GPT-3 为 41%。</td><td>改善是真实性方面的证据，但不等于模型已不会幻觉。</td></tr>
+            <tr><th>安全性有没有改善？</th><td>要求模型保持尊重时，毒性输出比 GPT-3 少约 25%；Winogender 和 CrowS-Pairs 上没有显著偏见改善。</td><td>毒性与偏见是不同问题，不能用前者的改善代替后者。</td></tr>
+            <tr><th>原有能力会不会受损？</th><td>纯 PPO 在若干公开 NLP 基准上退步；PPO-ptx 混入预训练目标后，大幅减轻了退步，且没有牺牲标注者偏好评分。</td><td>“对齐税”需要单独监测；只看人类偏好胜率可能漏掉能力损失。</td></tr>
+          </tbody></table></div>
+          
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

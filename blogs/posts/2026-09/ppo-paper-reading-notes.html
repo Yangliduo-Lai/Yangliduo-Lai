@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《Proximal Policy Optimization Algorithms》论文阅读笔记：从策略梯度的问题出发，理解 PPO 的概率比率、裁剪目标、训练流程、实验结果与局限。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>PPO《Proximal Policy Optimization Algorithms》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="ppo-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>PPO《Proximal Policy Optimization Algorithms》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>强化学习</span><span>PPO</span></div>
+        <div class="post-byline"><time datetime="2026-09-13">2026 年 9 月 13 日</time><i></i><span>约 12 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇是 John Schulman 等人在 2017 年发表的 <a href="https://arxiv.org/abs/1707.06347" target="_blank" rel="noreferrer"><em>Proximal Policy Optimization Algorithms</em></a> 阅读笔记。</p>
+
+          <p>论文研究的问题是：<strong>怎样让策略梯度既能重复利用一批交互数据，又不会因为一次更新太大而把策略训坏？</strong></p>
+
+          <h2>论文要解决什么问题</h2>
+
+          <p>强化学习中的策略 <em>π<sub>θ</sub></em> 会根据当前状态选择动作。训练的目标，是调整参数 <em>θ</em>，让智能体更常选择能够获得高回报的动作。</p>
+
+          <p>普通策略梯度可以告诉我们参数应该往哪个方向更新，但它没有可靠地限制更新幅度。同一批轨迹如果被反复训练多轮，新策略可能迅速偏离收集数据时的旧策略，使这些旧数据不再可靠，最终造成性能突然下降。</p>
+
+          <p>TRPO 用 KL 散度构造“信任区域”，明确限制新旧策略之间的距离，更新更稳定；代价是需要二阶近似和共轭梯度等复杂计算。PPO 想保留“小步、稳定更新”的核心思想，同时只使用普通的一阶优化器。</p>
+
+          <h2>贡献</h2>
+
+          <ol class="reading-list">
+            <li><strong>提出裁剪代理目标：</strong>通过裁剪新旧策略的概率比率，让会带来过度策略变化的收益停止增长。</li>
+            <li><strong>允许一批数据训练多轮：</strong>每次与环境交互后，可以对同一批样本进行多个 epoch 的 minibatch 更新，提高经验利用率。</li>
+            <li><strong>保持实现简单：</strong>PPO 可以用 SGD 或 Adam 和自动微分直接优化，不需要 TRPO 的二阶优化过程。</li>
+            <li><strong>给出广泛实验：</strong>论文在连续控制、3D 人形机器人和 49 个 Atari 游戏上比较了不同目标与其他算法。</li>
+          </ol>
+
+          <h2>背景</h2>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table">
+              <caption>理解 PPO 所需的基本对象</caption>
+              <thead><tr><th>符号</th><th>含义</th></tr></thead>
+              <tbody>
+                <tr><th><em>s<sub>t</sub></em></th><td>时间步 <em>t</em> 时智能体看到的状态。例如游戏画面，或者机器人的关节位置。</td></tr>
+                <tr><th><em>a<sub>t</sub></em></th><td>智能体在状态 <em>s<sub>t</sub></em> 下选择的动作。</td></tr>
+                <tr><th><em>π<sub>θ</sub>(a<sub>t</sub> | s<sub>t</sub>)</em></th><td>当前策略在状态 <em>s<sub>t</sub></em> 下选择动作 <em>a<sub>t</sub></em> 的概率。</td></tr>
+                <tr><th><em>R</em></th><td>reward。<br></td></tr>
+                <tr><th><em>V(s<sub>t</sub>)</em></th><td>价值函数：估计从状态 <em>s<sub>t</sub></em> 出发，未来通常能获得多少回报。</td></tr>
+                <tr><th><em>Â<sub>t</sub></em></th><td>优势估计：动作 <em>a<sub>t</sub></em> 相比该状态下的平均水平好多少。正数表示比预期好，负数表示比预期差。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>最基础的策略梯度目标可以写成：</p>
+
+          <div class="equation" aria-label="策略梯度代理目标">
+            <math display="block">
+              <mrow>
+                <msup><mi>L</mi><mtext>PG</mtext></msup><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>=</mo>
+                <msub><mover><mi>𝔼</mi><mo>^</mo></mover><mi>t</mi></msub>
+                <mo>[</mo><mi mathvariant="normal">log</mi>
+                <msub><mi>π</mi><mi>θ</mi></msub>
+                <mo>(</mo><msub><mi>a</mi><mi>t</mi></msub><mo>|</mo><msub><mi>s</mi><mi>t</mi></msub><mo>)</mo>
+                <msub><mover><mi>A</mi><mo>^</mo></mover><mi>t</mi></msub><mo>]</mo>
+              </mrow>
+            </math>
+            <span>(2)</span>
+          </div>
+
+          <p>如果 <em>Â<sub>t</sub> &gt; 0</em>，优化会提高该动作的概率；如果 <em>Â<sub>t</sub> &lt; 0</em>，优化会降低该动作的概率。问题在于，直接对同一批数据反复最大化这个目标，可能让动作概率变化得过快。</p>
+
+          <h2>方法</h2>
+
+          <h3>第一步：计算新旧策略的概率比率</h3>
+
+          <div class="equation" aria-label="PPO 概率比率">
+            <math display="block">
+              <mrow>
+                <msub><mi>r</mi><mi>t</mi></msub><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>=</mo>
+                <mfrac>
+                  <mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msub><mi>a</mi><mi>t</mi></msub><mo>|</mo><msub><mi>s</mi><mi>t</mi></msub><mo>)</mo></mrow>
+                  <mrow><msub><mi>π</mi><msub><mi>θ</mi><mtext>old</mtext></msub></msub><mo>(</mo><msub><mi>a</mi><mi>t</mi></msub><mo>|</mo><msub><mi>s</mi><mi>t</mi></msub><mo>)</mo></mrow>
+                </mfrac>
+              </mrow>
+            </math>
+          </div>
+
+          <p><em>r<sub>t</sub>(θ)</em> 衡量当前策略相对旧策略改变了多少。比率等于 1，表示动作概率没有变化；等于 1.2，表示新策略选择该动作的概率变成旧策略的 1.2 倍；等于 0.8，则表示变成了 0.8 倍。</p>
+
+          <h3>第二步：裁剪过大的有利更新</h3>
+
+          <div class="equation" aria-label="PPO 裁剪代理目标">
+            <math display="block">
+              <mrow>
+                <msup><mi>L</mi><mtext>CLIP</mtext></msup><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>=</mo>
+                <msub><mover><mi>𝔼</mi><mo>^</mo></mover><mi>t</mi></msub>
+                <mo>[</mo>
+                <mi mathvariant="normal">min</mi><mo>(</mo>
+                <msub><mi>r</mi><mi>t</mi></msub><mo>(</mo><mi>θ</mi><mo>)</mo><msub><mover><mi>A</mi><mo>^</mo></mover><mi>t</mi></msub>
+                <mo>,</mo>
+                <mi mathvariant="normal">clip</mi><mo>(</mo><msub><mi>r</mi><mi>t</mi></msub><mo>(</mo><mi>θ</mi><mo>)</mo><mo>,</mo><mn>1</mn><mo>−</mo><mi>ε</mi><mo>,</mo><mn>1</mn><mo>+</mo><mi>ε</mi><mo>)</mo>
+                <msub><mover><mi>A</mi><mo>^</mo></mover><mi>t</mi></msub>
+                <mo>)</mo><mo>]</mo>
+              </mrow>
+            </math>
+            <span>(7)</span>
+          </div>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table">
+              <caption>PPO 裁剪目标中的符号</caption>
+              <thead><tr><th>符号</th><th>含义</th></tr></thead>
+              <tbody>
+                <tr><th><em>L<sup>CLIP</sup>(θ)</em></th><td>PPO 要最大化的裁剪代理目标。</td></tr>
+                <tr><th><em>π<sub>θ</sub></em></th><td>正在更新的新策略，参数为 <em>θ</em>。</td></tr>
+                <tr><th><em>π<sub>θold</sub></em></th><td>收集当前这批轨迹时使用的旧策略；训练这批数据期间保持固定。</td></tr>
+                <tr><th><em>r<sub>t</sub>(θ)</em></th><td>新策略与旧策略选择同一个动作的概率之比。</td></tr>
+                <tr><th><em>Â<sub>t</sub></em></th><td>优势估计，表示该动作比预期更好还是更差。</td></tr>
+                <tr><th><em>ε</em></th><td>裁剪范围超参数。论文给出的示例值为 0.2，此时范围是 <em>[0.8, 1.2]</em>。</td></tr>
+                <tr><th><em>clip(r, 1 − ε, 1 + ε)</em></th><td>把概率比率限制到 <em>[1 − ε, 1 + ε]</em> 范围内。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>这条公式的关键是：<strong>当概率已经朝正确方向变化很多时，不再因为变化得更大而得到额外奖励。</strong></p>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table">
+              <caption>优势为正和为负时，裁剪分别在做什么</caption>
+              <thead><tr><th>情况</th><th>希望策略怎样变化</th><th>裁剪的作用</th></tr></thead>
+              <tbody>
+                <tr><th><em>Â<sub>t</sub> &gt; 0</em></th><td>这个动作比预期好，应该提高它的概率。</td><td>当 <em>r<sub>t</sub> &gt; 1 + ε</em> 后，继续提高概率不再增加目标值。</td></tr>
+                <tr><th><em>Â<sub>t</sub> &lt; 0</em></th><td>这个动作比预期差，应该降低它的概率。</td><td>当 <em>r<sub>t</sub> &lt; 1 − ε</em> 后，继续降低概率不再增加目标值。</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>例如旧策略选择一个好动作的概率是 0.4，新策略把它提高到 0.52，那么比率是 1.3。若 <em>ε = 0.2</em>，裁剪项只按 1.2 计算，因此目标不会继续鼓励这次过大的有利变化。</p>
+
+          <h3>第三步：同时学习策略和价值函数</h3>
+
+          <p>实际的 Actor–Critic 训练不仅要更新策略，还要让价值函数更准确，并用熵奖励保持探索。论文把三部分组合为：</p>
+
+          <div class="equation" aria-label="PPO 完整 Actor-Critic 目标">
+            <math display="block">
+              <mrow>
+                <msup><mi>L</mi><mtext>CLIP+VF+S</mtext></msup><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>=</mo><msub><mover><mi>𝔼</mi><mo>^</mo></mover><mi>t</mi></msub><mo>[</mo>
+                <msubsup><mi>L</mi><mi>t</mi><mtext>CLIP</mtext></msubsup><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>−</mo><msub><mi>c</mi><mn>1</mn></msub><msubsup><mi>L</mi><mi>t</mi><mtext>VF</mtext></msubsup><mo>(</mo><mi>θ</mi><mo>)</mo>
+                <mo>+</mo><msub><mi>c</mi><mn>2</mn></msub><mi>S</mi><mo>[</mo><msub><mi>π</mi><mi>θ</mi></msub><mo>]</mo><mo>(</mo><msub><mi>s</mi><mi>t</mi></msub><mo>)</mo>
+                <mo>]</mo>
+              </mrow>
+            </math>
+            <span>(9)</span>
+          </div>
+
+          <ul class="reading-list">
+            <li><em>L<sup>CLIP</sup></em>：让策略更常选择高优势动作，同时限制过度更新；</li>
+            <li><em>L<sup>VF</sup></em>：价值函数的平方误差，越小越好，所以前面是减号；</li>
+            <li><em>S</em>：策略熵，鼓励策略保留一定随机性，避免过早只选择少数动作；</li>
+            <li><em>c<sub>1</sub></em>、<em>c<sub>2</sub></em>：控制价值损失和熵奖励权重的系数。</li>
+          </ul>
+
+          <h2>训练 Pipeline</h2>
+
+          <ol class="reading-list">
+            <li><strong>采集轨迹：</strong>让旧策略 <em>π<sub>θold</sub></em> 与环境交互。论文的 Actor–Critic 版本让 <em>N</em> 个并行 actor 各运行 <em>T</em> 个时间步。</li>
+            <li><strong>计算训练信号：</strong>根据奖励和价值函数计算每个时间步的回报与优势估计 <em>Â<sub>t</sub></em>。</li>
+            <li><strong>固定旧策略：</strong>保存旧策略对已执行动作给出的概率，作为分母；训练这批数据时它不再改变。</li>
+            <li><strong>更新当前策略：</strong>把 <em>NT</em> 个样本拆成 minibatch，用 PPO 目标训练 <em>K</em> 个 epoch，同时更新策略网络和价值网络。</li>
+            <li><strong>替换并重复：</strong>令 <em>θ<sub>old</sub> ← θ</em>，使用更新后的策略重新与环境交互，再开始下一轮。</li>
+          </ol>
+
+          <div class="article-callout">PPO 是 on-policy 方法。它允许一批数据训练多个 epoch，但训练完后仍要丢弃这批轨迹，并由最新策略重新采样；它并没有把旧数据永久变成可重复使用的离线数据。</div>
+
+          <h2>实验</h2>
+
+          <h3>哪一种代理目标最好？</h3>
+
+          <p>论文先在 7 个 MuJoCo 连续控制任务上比较不加限制、概率比率裁剪、固定 KL 惩罚和自适应 KL 惩罚。每种设置使用 3 个随机种子，共汇总 21 次运行。</p>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table results-table">
+              <caption>论文表 1 中有代表性的平均归一化分数</caption>
+              <thead><tr><th>代理目标</th><th>超参数</th><th>平均归一化分数</th></tr></thead>
+              <tbody>
+                <tr><th>无裁剪、无惩罚</th><td>—</td><td>−0.39</td></tr>
+                <tr class="ours"><th>概率比率裁剪</th><td><em>ε = 0.2</em></td><td class="best">0.82</td></tr>
+                <tr><th>自适应 KL 惩罚</th><td><em>d<sub>targ</sub> = 0.01</em></td><td>0.74</td></tr>
+                <tr><th>固定 KL 惩罚</th><td><em>β = 3</em></td><td>0.72</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>不限制更新的版本得到负分，说明反复使用同一批数据确实可能破坏策略。裁剪版本中 <em>ε = 0.2</em> 得分最高，也优于论文测试的 KL 惩罚版本，因此 PPO-Clip 成为论文后续实验使用的主要版本。</p>
+
+          <h3>与其他强化学习算法相比怎样？</h3>
+
+          <ul class="reading-list">
+            <li><strong>连续控制：</strong>PPO 在论文测试的几乎所有连续控制环境上优于 TRPO、A2C、带信任区域的 A2C、CEM 和自适应步长的普通策略梯度。</li>
+            <li><strong>高维人形控制：</strong>PPO 学会了奔跑、转向目标，以及被方块击倒后重新站起等行为。</li>
+            <li><strong>Atari：</strong>在 49 个游戏中，按整个训练过程的平均回报计算，PPO 赢得 30 个游戏，ACER 赢得 18 个，A2C 赢得 1 个；按最后 100 局的平均回报计算，ACER 赢得 28 个，PPO 赢得 19 个，另有 1 个平局。</li>
+          </ul>
+
+          <p>因此，论文最有力的证据不是“PPO 在每项指标上都最好”，而是它在样本效率、最终性能、实现复杂度和运行时间之间取得了很好的整体平衡。</p>
+
+          <h2>局限</h2>
+
+          <ul class="reading-list">
+            <li><strong>裁剪不是严格约束：</strong>它移除了过大有利更新的激励，但不能保证每次更新后概率比率或 KL 一定落在指定范围。</li>
+            <li><strong>仍然需要在线采样：</strong>多 epoch 提高了单批数据的利用率，但 PPO 本质上仍是 on-policy 算法。</li>
+            <li><strong>结果依赖实现细节：</strong>优势估计、归一化、学习率、batch 大小、epoch 数量和熵系数都会影响训练稳定性。</li>
+            <li><strong>论文没有验证语言模型：</strong>MuJoCo、Roboschool 和 Atari 的结果不能直接证明 PPO 在 RLHF 中一定优于其他偏好优化方法。</li>
+          </ul>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

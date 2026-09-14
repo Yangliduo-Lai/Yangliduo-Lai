@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines》阅读笔记：为什么要把语言模型调用写成模块，以及 DSPy 如何通过示例自举和指标优化整个流水线。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>DSPy《Compiling Declarative Language Model Calls into Self-Improving Pipelines》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="dspy-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4-1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>DSPy《Compiling Declarative Language Model Calls into Self-Improving Pipelines》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>提示优化</span><span>语言模型流水线</span></div>
+        <div class="post-byline"><time datetime="2026-09-14">2026 年 9 月 14 日</time><i></i><span>约 8 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇笔记阅读 Khattab 等人的 <a href="https://arxiv.org/abs/2310.03714" target="_blank" rel="noreferrer"><em>DSPy: Compiling Declarative Language Model Calls into Self-Improving Pipelines</em></a>。它讨论的不是怎样写出一条更漂亮的提示词，而是一个更上层的问题：<strong>当应用要连续调用语言模型、检索器和工具时，能不能先写清每一步要做什么，再让系统根据数据自动寻找合适的示例和提示方式？</strong>DSPy 给出的答案是把调用写成可组合的程序模块，再“编译”这个程序。</p>
+
+          <h2>贡献：把手调 prompt 变成优化流水线</h2>
+
+          <p>论文的核心贡献有两部分。第一，提出 <strong>signature（签名）和 module（模块）</strong>，把“问答”“生成检索词”“先推理再回答”等语言模型操作写成清晰、可复用的组件。第二，提出由 <strong>teleprompter（优化器）</strong>驱动的编译流程：运行整个程序，收集成功轨迹中的中间步骤，再为每个模块自动挑选示例，尽量提高最终任务指标。开发者仍决定任务拆成几步、怎样连接工具以及什么算正确；不必逐句手写每个模块的长 prompt。</p>
+
+          <div class="article-callout"><strong>这里的“编译”不是把 Python 变成机器码。</strong>它指的是：给定程序、少量任务样本和评价指标，搜索或生成更合适的模块参数。最常见的是优化提示中放哪些 few-shot 示例；论文也展示了微调模型权重，以及通过集成多个程序调整外层流程的方式。</div>
+
+          <h2>背景：多步应用为什么比单条 prompt 更难调</h2>
+
+          <p>设想一个两跳问答系统：模型先根据问题生成检索词，检索器找资料；模型阅读资料后再生成第二个检索词，最后根据两轮资料回答。若第一步的 prompt 让模型写出太宽泛的词，后面的回答模块即使提示写得很好，也拿不到关键证据。反过来，只调检索模块而不检查最终答案，也不知道改动是否真的有用。<strong>多步流水线的问题是各步骤互相影响，不能只凭某一步的输出看起来顺眼来调系统。</strong></p>
+
+          <p>传统做法会为每一步写固定的任务说明、角色设定和示例；换模型、换数据领域或调整流水线后，又得重新手调。DSPy 希望保留程序结构由人设计的灵活性，同时让模块内部的提示示例可以依据<strong>最终任务的评价指标</strong>自动调整。</p>
+
+          <h2>方法：从声明任务到编译程序</h2>
+
+          <p><strong>第一层是 signature：说明输入和输出。</strong>例如 <code>question -&gt; answer</code> 表示输入问题、输出答案；<code>context, question -&gt; search_query</code> 表示读已有资料和原问题，再给出下一轮检索词。它只写“要完成什么转换”，不在此处指定一整段任务专属 prompt。字段名称和可选说明会帮助 DSPy 构造实际调用。</p>
+
+          <p><strong>第二层是 module：决定怎样完成转换。</strong><code>Predict</code> 直接预测输出，<code>ChainOfThought</code> 先生成推理再给答案，<code>Retrieve</code> 调检索器。开发者可以把这些模块放入普通 Python 控制流中，例如“生成检索词 → 检索 → 再生成检索词 → 再检索 → 回答”。这一步固定的是应用的<strong>总体结构</strong>，不是某个模型所需的具体示例文本。</p>
+
+          <p><strong>第三层是 teleprompter：优化每个模块。</strong>编译器读取程序、训练样本和评价指标，逐层找到需要模型预测的模块。以论文的 <code>BootstrapFewShot</code> 为例，它先让未优化的程序（或指定的 teacher 程序）跑若干训练问题；如果最终答案通过指标，就保留该次运行里“生成了什么检索词、看到了什么上下文、最后如何回答”的完整轨迹。这样即使数据只标注了最终答案，也能从成功轨迹中为<strong>中间模块</strong>构造示例。示例组合再根据验证数据或训练集内交叉验证来选择，而不是直接在测试集上挑。</p>
+
+          <ol class="reading-list">
+            <li><strong>人先写程序：</strong>确定模块、模块间的数据流、训练问题，以及可计算的目标指标，例如最终答案是否与标准答案一致。</li>
+            <li><strong>编译器试跑并收集：</strong>让程序完成这些问题；丢弃不符合指标的轨迹，把成功轨迹中各模块的输入—输出对变成候选 few-shot 示例。</li>
+            <li><strong>选择或学习参数：</strong>在候选示例之间搜索，或把收集到的数据用于微调较小模型；得到编译后的各模块。</li>
+            <li><strong>实际使用：</strong>对于通常的 few-shot 编译，新问题仍按原来的检索、推理、回答顺序运行，只是每个模块携带了编译得到的提示示例；微调型编译则会调用更新过权重的模型。</li>
+          </ol>
+
+          <p>一个具体例子：训练样本只有“问题：某作者出生的城市在哪个国家？”和最终正确国家，没有人工写的两轮检索词。若 DSPy 某次试跑恰好先搜到作者出生城市、再搜到该城市所属国家，并答对了，它就能把两次生成检索词的过程留下来，作为以后生成检索词的示范。<strong>这里的“自我改进”发生在编译阶段，靠成功轨迹与指标筛选；默认不是上线后每回答一题就自动在线学习。</strong>这个例子是对算法的示意，不是论文中的原始测试题。</p>
+
+          <h2>实验：结构和编译分别带来什么</h2>
+
+          <p>作者主要研究两类任务。<strong>GSM8K 数学题：</strong>使用 200 道训练题、300 道开发题，并在官方测试集上报告部分设置。GPT-3.5 的 <code>ChainOfThought</code> 程序如果使用人工写好的推理示例，测试准确率为 <strong>72.4%</strong>；用 DSPy 自举示例而不依赖这些人工推理链，达到 <strong>72.9%</strong>。更复杂的“生成多条推理再比较”程序，经自举后为 <strong>76.0%</strong>。这说明收益不只是换了一个提示模板：模块设计和示例优化都在起作用。不同程序的数字不能单独当作“编译器的净增益”。</p>
+
+          <p><strong>HotpotQA 多跳问答：</strong>论文让多跳程序两次生成检索词并检索，再综合证据回答。下表只比较<strong>相同程序、相同模型</strong>的 few-shot 与自举编译结果，指标是保留测试集上的答案精确匹配率；这与“检索到支持段落的比例”是不同指标。</p>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>HotpotQA：两跳程序的测试集答案精确匹配率</caption><thead><tr><th>模型</th><th>普通 few-shot</th><th>自举编译</th></tr></thead><tbody>
+            <tr><th>GPT-3.5</th><td>31.2%</td><td>39.6%</td></tr>
+            <tr><th>Llama2-13b-chat</th><td>31.3%</td><td>36.4%</td></tr>
+          </tbody></table></div>
+
+          <p>论文还尝试让已编译的较大程序充当 teacher，为 <strong>T5-Large（约 7.7 亿参数）</strong>生成训练数据并微调；该设置用了 200 个有标注输入和 800 个无标注问题，在<strong>开发集</strong>得到 39.3% 的答案精确匹配率。这个数不能直接与上表的<strong>测试集</strong>分数并排判输赢，但它展示了“编译”也可以真正更新小模型权重，而不只是往 prompt 里放示例。</p>
+
+          <h2>怎样理解这篇论文的边界</h2>
+
+          <p>DSPy 把原先难以复用的 prompt 调整，变成可以围绕数据和指标重复运行的优化过程；对多步检索、推理、工具调用尤其有吸引力。但它并不会自动发明一个好任务定义：<strong>程序结构和指标仍由人提供</strong>。如果指标只检查答案字面相同，可能选出“碰巧答对但证据不可靠”的轨迹；如果缺少可用反馈，编译器也难以判断哪些中间示例值得保留。此外，编译期要反复试跑程序，有额外模型调用成本。论文结果证明了特定任务和设置下的收益，不能保证任何新流水线都会自动变好。</p>
+
+          <p>我认为最值得带走的区别是：<strong>ReAct、CoT、RAG 主要回答“系统按什么步骤工作”；DSPy 进一步回答“这些步骤里的模型调用怎样根据任务数据被系统性优化”。</strong>在默认的 few-shot 编译中，变的是模块提示里的示例；只有选择微调型优化器时，语言模型的参数才会改变。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

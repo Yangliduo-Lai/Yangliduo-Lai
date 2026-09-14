@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning》阅读笔记：R1-Zero、R1 多阶段训练、GRPO、规则奖励与实验结果。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>DeepSeek-R1《Incentivizing Reasoning Capability in LLMs via Reinforcement Learning》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="deepseek-r1-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4-1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>DeepSeek-R1《Incentivizing Reasoning Capability in LLMs via Reinforcement Learning》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>强化学习</span><span>GRPO</span></div>
+        <div class="post-byline"><time datetime="2026-09-13">2026 年 9 月 13 日</time><i></i><span>约 10 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇笔记阅读 DeepSeek-AI 的 <a href="https://arxiv.org/html/2501.12948" target="_blank" rel="noreferrer"><em>DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</em></a>，以下数字按 arXiv v2（2026 年 1 月）核对。核心主线是：<strong>先用 R1-Zero 验证“不先做 SFT，规则奖励的强化学习能否提高推理能力”；再用 R1 的多阶段训练解决可读性和通用助手能力的问题。</strong></p>
+
+          <h2>贡献</h2>
+
+          <ol class="reading-list">
+            <li><strong>验证纯 RL 路线。</strong>DeepSeek-R1-Zero 从已预训练的 DeepSeek-V3-Base 出发，不先用示范推理过程做 SFT，直接通过可验证答案的奖励和 GRPO 训练。论文报告其 AIME 2024 平均 pass@1 从训练起点的 15.6% 升至 77.9%。</li>
+            <li><strong>给出可使用的 R1 训练流程。</strong>R1 在 RL 前加入少量高质量推理示范，随后交替使用 RL、筛选生成结果和 SFT，并在最后一轮 RL 中兼顾推理、帮助性和安全性。</li>
+            <li><strong>展示推理能力可以蒸馏。</strong>作者还用大模型生成的解题轨迹监督微调较小模型。蒸馏学生模型与 R1-Zero、完整 R1 是不同产物，不能把小模型的成绩当作“直接用 GRPO 训练小模型”的结果。</li>
+          </ol>
+
+          <h2>背景</h2>
+
+          <p>传统的推理微调常依赖人写的逐步解答。复杂问题的解答难大量标注，但数学、代码和部分逻辑题往往能<strong>验证最终答案</strong>：数学可对照标准答案，代码可运行测试。即使没有人逐步示范“中间该怎么想”，模型仍可能从“这次答对了没有”的反馈中改进生成策略。</p>
+
+          <p>这篇论文承接了 <a href="deepseekmath-paper-reading-notes.html">DeepSeekMath 提出的 GRPO</a>，重点不在发明一个全新的策略优化公式，而在<strong>把可验证奖励与大规模 RL 用到更强的基础模型上</strong>。但“纯 RL”只表示 <em>RL 开始前不做 SFT</em>：R1-Zero 仍依赖预训练模型、题目、正确答案或测试用例，以及输出格式要求，并非从零开始、也不是没有监督信号。</p>
+
+          <h2>方法：两条分支，不是一条直线</h2>
+
+          <h3>分支一：DeepSeek-R1-Zero</h3>
+
+          <p>流程是 <strong>DeepSeek-V3-Base → 规则奖励 + GRPO → DeepSeek-R1-Zero</strong>。提示模板要求模型把推理写在 <code>&lt;think&gt;...&lt;/think&gt;</code> 中，把最终答案写在 <code>&lt;answer&gt;...&lt;/answer&gt;</code> 中，但不提供某道题的标准推理过程。奖励由两部分相加：<strong>准确性奖励</strong>检查最终答案或代码测试结果，<strong>格式奖励</strong>检查结构标签；推理任务不使用神经网络奖励模型给过程打分。<a href="https://arxiv.org/html/2501.12948#S2.SS2" target="_blank" rel="noreferrer">论文 §2.2</a></p>
+
+          <p>GRPO 对同一道题采样多条回答，按这组回答的奖励计算相对优势：高于组内平均的回答更受鼓励，低于平均的受到抑制。随后沿用策略概率比的裁剪更新，并用 KL 项约束相对参考模型的偏移。R1-Zero 的论文设置是<strong>每题采样 16 条回答</strong>；它复用了 GRPO，而不是在此首次提出 GRPO。与 DeepSeekMath 中用奖励模型打分的做法相比，R1-Zero 对可验证推理题直接使用规则评分，变的是<strong>奖励来源</strong>，不是组内比较的基本想法。<a href="https://arxiv.org/html/2501.12948#S2.SS1" target="_blank" rel="noreferrer">R1 论文 §2.1</a>、<a href="https://arxiv.org/html/2402.03300#S4.SS1" target="_blank" rel="noreferrer">DeepSeekMath 论文 §4.1</a></p>
+
+          <div class="article-callout"><p><strong>不要把 R1-Zero 理解成正式 R1 的前一个检查点。</strong>R1 的模型参数仍从 V3-Base 出发，先用冷启动数据做 SFT；不过，冷启动数据确实利用了 R1-Zero 生成、再经筛选和改写的推理轨迹。两条路线有数据联系，却不是同一个模型顺序接力。<a href="https://arxiv.org/html/2501.12948" target="_blank" rel="noreferrer">论文附录 B.3.2</a></p></div>
+
+          <h3>分支二：DeepSeek-R1 的四个阶段</h3>
+
+          <ol class="reading-list">
+            <li><strong>冷启动 SFT：</strong>从 V3-Base 出发，用数千条较清晰、语言一致的长推理示范建立可读的回答形式。这一步教模型如何呈现解题过程，不是 Zero 分支里的步骤。</li>
+            <li><strong>第一轮推理 RL：</strong>继续用 GRPO、可验证题目的准确性与格式奖励训练，并加入语言一致性奖励，减少中英文混杂。它保留了 Zero 路线的“答案可验证 → 反馈策略”的核心，但从冷启动后的模型起步。</li>
+            <li><strong>筛选生成结果，再做 SFT：</strong>用第一轮 RL 模型为题目生成多条解答，保留正确且易读的结果，形成约 <strong>60 万条推理样本</strong>；再加入约 <strong>20 万条非推理样本</strong>，例如写作和通用问答。合计约 80 万条数据用于第二次 SFT，把推理与日常助手能力放到同一模型中。</li>
+            <li><strong>第二轮混合 RL：</strong>推理题继续使用可验证的规则奖励；开放式任务使用帮助性、安全性奖励模型，并兼顾语言一致性。最终得到 DeepSeek-R1。这里的奖励来源随任务类型变化，不能把整个 R1 训练概括为“只用规则奖励”。</li>
+          </ol>
+
+          <p>四阶段的顺序是 <strong>冷启动 SFT → 推理 RL → 筛选样本与 SFT → 混合 RL</strong>。其中两次 SFT 的职责也不同：第一次用少量示范解决起步与可读性，第二次用大规模生成样本和通用任务数据扩展行为范围。<a href="https://arxiv.org/html/2501.12948#S3" target="_blank" rel="noreferrer">论文 §3</a>、<a href="https://arxiv.org/html/2501.12948" target="_blank" rel="noreferrer">附录 B.3</a></p>
+
+          <h3>蒸馏：把 R1 的解题轨迹教给小模型</h3>
+
+          <p>论文还用 R1 项目中整理的约 80 万条高质量轨迹和通用任务样本去监督微调较小的基础模型，得到一系列 Distill 模型。这是一条<strong>教师数据 → 学生 SFT</strong>的路线，不等于把上述四阶段原样在每个小模型上重跑，也不等于学生天然具备与教师相同的能力。<a href="https://arxiv.org/html/2501.12948" target="_blank" rel="noreferrer">论文附录 F</a></p>
+
+          <h2>实验：推理提高了什么，代价是什么</h2>
+
+          <p>下表取自论文 v2 的阶段结果。<strong>R1-Zero 与 Dev1 是两条分支</strong>；Dev1 → Dev2 → Dev3 → R1 才是正式 R1 的连续训练路径。AIME 2024 衡量竞赛数学，IF-Eval 衡量对指令格式的遵循，不能把两个分数相加当成“总能力”。<a href="https://arxiv.org/html/2501.12948#S3" target="_blank" rel="noreferrer">论文表 3</a></p>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>R1-Zero 与 R1 各阶段的论文报告结果（%）</caption><thead><tr><th>模型</th><th>在流程中的位置</th><th>AIME 2024 pass@1</th><th>IF-Eval 严格遵循率</th></tr></thead><tbody>
+            <tr><th>R1-Zero</th><td>独立的纯 RL 分支</td><td>77.9</td><td>46.6</td></tr>
+            <tr><th>R1-Dev1</th><td>冷启动 SFT 后</td><td>59.0</td><td>71.7</td></tr>
+            <tr><th>R1-Dev2</th><td>第一轮推理 RL 后</td><td>74.0</td><td>72.0</td></tr>
+            <tr><th>R1-Dev3</th><td>筛选样本与第二次 SFT 后</td><td>78.1</td><td>78.1</td></tr>
+            <tr><th>R1</th><td>第二轮混合 RL 后</td><td>79.8</td><td>83.3</td></tr>
+          </tbody></table></div>
+
+          <p>R1-Zero 的 AIME 成绩说明，在这套可验证题目和训练配置下，<strong>不先做推理 SFT 也能通过 RL 提升解题表现</strong>。但它的 IF-Eval 明显低于正式 R1，且论文报告了可读性差、语言混杂的问题。正式 R1 在多阶段训练后兼顾了较高的推理与指令遵循分数；阶段对照提供了线索，却不能把每项变化简单归因于单独一个训练步骤。</p>
+
+          <p>蒸馏是表外的另一条路线。例如，论文中的 DeepSeek-R1-Distill-Qwen-7B 在 AIME 2024 的 pass@1 为 <strong>55.5%</strong>；这个学生模型只做了蒸馏 SFT，没有重跑 R1 的两轮 RL。<a href="https://arxiv.org/html/2501.12948" target="_blank" rel="noreferrer">论文附录 F、表 15</a></p>
+
+          <p>这条方法有明确边界：规则奖励最适合答案可可靠验证的任务；开放式写作和安全性仍需要其他反馈。论文也承认结构化输出、工具使用等方面不足。把 R1 读成“只要 GRPO、不要数据与奖励设计”会错过它最重要的经验：<strong>强化学习能放大可验证反馈，产品化的助手还需要冷启动、数据筛选、SFT 和更广的奖励目标。</strong><a href="https://arxiv.org/html/2501.12948#S6" target="_blank" rel="noreferrer">论文 §6</a></p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

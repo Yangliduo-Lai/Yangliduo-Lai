@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="从学习示范、学习偏好到优化在线奖励，系统理解大模型 Post-Training 中 SFT、DPO 与 GRPO 的目标函数、训练流程、适用场景和常见陷阱。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>大模型 Post-Training：从 SFT、DPO 到 GRPO</title>
+  <link rel="alternate" hreflang="zh-CN" href="post-training-sft-dpo-grpo.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <script src="../../blog.js?v=8" defer></script>
+  <style>
+    .term-highlight{display:inline;padding:.04em .28em;border:0;border-radius:.35em;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent2);font-family:inherit;font-weight:700;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:.2em;cursor:pointer}
+    .term-highlight:hover,.term-highlight[aria-expanded="true"]{background:color-mix(in srgb,var(--accent) 28%,transparent);color:var(--text)}
+    .term-highlight:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .term-highlight:after{margin-left:.3em;content:"＋";font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;font-size:.72em;text-decoration:none}
+    .term-highlight[aria-expanded="true"]:after{content:"−"}
+    .term-explanation{margin:-4px 0 26px}
+    .term-explanation[hidden]{display:none}
+  </style>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>大模型 Post-Training：从 SFT、DPO 到 GRPO</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>机器学习</span><span>Post-Training</span><span>模型对齐</span><span>强化学习</span></div>
+        <div class="post-byline"><time datetime="2026-09-11">2026 年 9 月 11 日</time><i></i><span>约 18 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <div class="article-body">
+          <p class="lead"><strong>预训练让语言模型学会“什么文本可能接在后面”，Post-Training 则进一步塑造“面对一个请求，应该怎样回答”。</strong>SFT、DPO 和 GRPO 的核心差异在于它们分别从示范、偏好和奖励中学习。</p>
+
+          <p>“Post-Training”是一个宽泛的集合，并不只包含本文的三种方法。这里把范围限定在大模型预训练完成后的行为优化：让模型更稳定地遵循指令、呈现目标风格、满足人类偏好，或在数学、代码和工具调用等任务上探索更高奖励的策略。</p>
+
+          <h2>先看全局：三种反馈，三种学习信号</h2>
+
+          <div class="stage-grid">
+            <section><span>Demonstration</span><h3>SFT</h3><p>给模型一个高质量回答，让它逐 token 模仿：“这样的答案值得学习。”</p></section>
+            <section><span>Preference</span><h3>DPO</h3><p>给模型同一问题下的一对回答，让它学习：“A 比 B 更符合偏好。”</p></section>
+            <section><span>Reward</span><h3>GRPO</h3><p>让模型现场生成多个回答，再由验证器判断：“这个回答能得多少分。”</p></section>
+          </div>
+
+          <p>记号：<em>x</em> 表示 prompt，<em>y</em> 表示模型回答，<em>π<sub>θ</sub></em> 是正在训练的策略模型，<em>π<sub>ref</sub></em> 是冻结的参考模型，<em>r(x,y)</em> 是奖励或验证器分数。</p>
+
+          <h2>SFT：从高质量示范中学习</h2>
+
+          <p>Supervised Fine-Tuning（监督微调）使用形如 <code>(prompt, answer)</code> 的数据。训练时，模型看到 prompt 和标准回答的前缀，预测标准回答的下一个 token；预测错了，就通过<button class="term-highlight" type="button" aria-expanded="false" aria-controls="cross-entropy-explanation" data-term-trigger>交叉熵损失</button>更新参数。这与预训练仍然使用同一种语言建模机制，但数据分布、对话模板和损失区域已经面向具体行为。</p>
+
+          <div class="rubric-card term-explanation" id="cross-entropy-explanation" hidden>
+            <p><strong>交叉熵损失衡量模型给正确 token 的概率够不够高。</strong>例如，正确 token 是“苹果”时，模型只给它 5% 的概率，损失就很大；给它 90% 的概率，损失就很小。训练通过不断减小这个数值，让模型以后更倾向于预测出正确 token。</p>
+          </div>
+
+          <div class="equation" aria-label="公式 1：SFT 的负对数似然损失">
+            <math display="block"><msub><mi>ℒ</mi><mtext>SFT</mtext></msub><mo>=</mo><mo>−</mo><msub><mi>𝔼</mi><mrow><mo>(</mo><mi>x</mi><mo>,</mo><msup><mi>y</mi><mo>*</mo></msup><mo>)</mo><mo>∼</mo><mi>𝒟</mi></mrow></msub><mrow><mo>[</mo><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></munderover><msub><mi>m</mi><mi>t</mi></msub><mi>log</mi><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msubsup><mi>y</mi><mi>t</mi><mo>*</mo></msubsup><mo>|</mo><mi>x</mi><mo>,</mo><msubsup><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow><mo>*</mo></msubsup><mo>)</mo><mo>]</mo></mrow></math>
+            <span>(1)</span>
+          </div>
+
+          <p>这里的 <em>y*</em> 是示范回答，<em>m<sub>t</sub></em> 是 <button class="term-highlight" type="button" aria-expanded="false" aria-controls="loss-mask-explanation" data-term-trigger>loss mask</button>。对聊天模型而言，通常只在 assistant 的回答 token 上计算损失，而把 system 和 user token 作为条件；如果 mask 写错，模型可能花大量容量去背诵用户输入，甚至学会生成角色标记。</p>
+
+          <div class="rubric-card term-explanation" id="loss-mask-explanation" hidden>
+            <p><strong>Loss mask 是一组标记，用来告诉训练程序哪些 token 需要计入损失。</strong>例如，可以把 assistant 回答的 token 标为 1，把 system、user 和补齐长度的 token 标为 0。标为 0 的内容仍会作为上下文提供给模型，只是不要求模型学习预测它们。</p>
+          </div>
+
+          <details class="prompt-details">
+            <summary>查看一条典型 SFT 数据</summary>
+            <pre><code>说明：箭头右侧是帮助理解的标记，不属于实际 JSON 数据。
+
+{
+  "messages": [
+    {"role": "system", "content": "你是一名严谨的数学助教。"},  ← system：规定模型的身份
+    {"role": "user", "content": "为什么负数乘负数等于正数？"},  ← user：用户的问题
+    {"role": "assistant", "content": "可以从分配律推导……"}       ← assistant：希望模型学会的标准回答
+  ]
+}</code></pre>
+          </details>
+
+          <p>SFT 最擅长建立一个可靠的<strong>行为底座</strong>：教会模型聊天格式、任务边界、回答结构、领域术语和常见解题模式。</p>
+
+          <h3>SFT 的优势</h3>
+
+          <ul class="reading-list">
+            <li><strong>目标稳定。</strong>本质是<button class="term-highlight" type="button" aria-expanded="false" aria-controls="maximum-likelihood-explanation" data-term-trigger>最大似然训练</button>，工程链路成熟，调试也最直观；</li>
+            <li><strong>监督密集。</strong>一个回答里的每个目标 token 都能提供学习信号；</li>
+            <li><strong>格式控制强。</strong>对于 JSON、工具调用模板、固定报告结构等任务尤其有效；</li>
+            <li><strong>不需要在线采样。</strong>数据可以预先清洗、审查和复用。</li>
+          </ul>
+
+          <div class="rubric-card term-explanation" id="maximum-likelihood-explanation" hidden>
+            <p><strong>最大似然训练就是让训练数据中的标准答案获得尽可能高的生成概率。</strong>例如，标准答案是“2”，训练就会调整模型，让它看到对应问题时更可能输出“2”。在 SFT 中，最大化标准答案的概率，与最小化前面介绍的交叉熵损失是同一件事的两种说法。</p>
+          </div>
+
+          <h3>SFT 的边界</h3>
+
+          <p>SFT 学到的是示范数据的条件分布。它只看到“应该输出什么”，看不到某个回答为什么优于另一个回答，也不会主动搜索数据中从未出现过的更优解法。教师强制训练时，模型总能看到正确前缀；真正生成时，它却必须继续自己的历史输出，因此训练分布与推理分布之间仍有差异。</p>
+
+          <p>实践中最容易出问题的往往不是公式，而是数据管线：训练与推理使用了不同 chat template、EOS 被截断、packing 打破样本边界、长回答因为 token 更多而权重过高，或训练轮数过多导致通用能力回退。训练 loss 下降只能说明模型更会拟合示范，不能代替真实生成评测。</p>
+
+          <h2>DPO：把成对偏好直接写进损失函数</h2>
+
+          <p>很多任务没有唯一标准答案。例如，两段解释都正确，但其中一段更清晰；两个客服回复都能解决问题，但其中一个更自然。此时，与其要求标注者写出理想答案，不如让他们在同一 prompt 的两个候选回答中选择更好的一个。DPO 使用的数据正是三元组 <code>(x, y_chosen, y_rejected)</code>。</p>
+
+          <p>传统 <button class="term-highlight" type="button" aria-expanded="false" aria-controls="rlhf-explanation" data-term-trigger>RLHF</button> 通常先用偏好对训练显式 reward model，再用 <button class="term-highlight" type="button" aria-expanded="false" aria-controls="ppo-explanation" data-term-trigger>PPO</button> 等算法优化策略。<a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noreferrer">DPO 原论文</a>从带 <button class="term-highlight" type="button" aria-expanded="false" aria-controls="kl-constraint-explanation" data-term-trigger>KL 约束</button>的奖励最大化问题出发，在 <button class="term-highlight" type="button" aria-expanded="false" aria-controls="bradley-terry-explanation" data-term-trigger>Bradley–Terry 偏好模型假设</button>下，把隐式奖励改写为策略与参考策略的对数概率比：</p>
+
+          <div class="rubric-card term-explanation" id="rlhf-explanation" hidden>
+            <p><strong>RLHF 是“基于人类反馈的强化学习”。</strong>简单来说，先让人类比较同一个问题的多个回答，用这些选择训练一个会模仿人类偏好的奖励模型，再通过强化学习让语言模型更容易生成高分回答。它学习的是标注者表达的偏好，并不自动保证回答绝对正确。</p>
+          </div>
+
+          <div class="rubric-card term-explanation" id="ppo-explanation" hidden>
+            <p><strong>PPO 是“近端策略优化”，是一种强化学习算法。</strong>它让模型提高高奖励回答的生成概率、降低低奖励回答的生成概率，同时限制每次参数更新的幅度。可以把它理解为：模型朝着奖励更高的方向学习，但每一步不要走得太远，以免原有能力突然遭到破坏。</p>
+          </div>
+
+          <div class="rubric-card term-explanation" id="kl-constraint-explanation" hidden>
+            <p><strong>KL 约束用于限制训练后的模型与参考模型相差太远。</strong>模型会努力生成奖励更高的回答，但如果变化过大，可能损害原有的语言能力，甚至学会利用评分规则的漏洞。KL 约束就像一根安全绳：允许模型朝更好的方向调整，同时对过度偏离参考模型的行为施加惩罚。</p>
+          </div>
+
+          <div class="rubric-card term-explanation" id="bradley-terry-explanation" hidden>
+            <p><strong>Bradley–Terry 偏好模型用两个回答的分数差，表示人类更喜欢其中一个回答的概率。</strong>例如，回答 A 的潜在分数远高于回答 B，人类选择 A 的概率就更大；两者分数相同时，各自被选择的概率约为 50%。DPO 借助这个假设，把“人类选择了 A 而不是 B”转化为可以训练模型的数学目标。</p>
+          </div>
+
+          <div class="equation" aria-label="公式 2：DPO 中的隐式奖励">
+            <math display="block"><msub><mi>r</mi><mi>θ</mi></msub><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo><mi>β</mi><mi>log</mi><mfrac><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow><mrow><msub><mi>π</mi><mtext>ref</mtext></msub><mo>(</mo><mi>y</mi><mo>|</mo><mi>x</mi><mo>)</mo></mrow></mfrac></math>
+            <span>(2)</span>
+          </div>
+
+          <p>同一个 prompt 下比较两个回答时，只依赖 <em>r(x,y<sup>+</sup>) − r(x,y<sup>−</sup>)</em>，只与 prompt 有关的未知归一化项会相互抵消。最终得到一个二分类形式的目标：</p>
+
+          <div class="equation" aria-label="公式 3：DPO 损失">
+            <math display="block"><msub><mi>ℒ</mi><mtext>DPO</mtext></msub><mo>=</mo><mo>−</mo><mi>𝔼</mi><mi>log</mi><mi>σ</mi><mo>(</mo><mi>β</mi><mo>[</mo><msub><mi>Δ</mi><mi>θ</mi></msub><mo>−</mo><msub><mi>Δ</mi><mtext>ref</mtext></msub><mo>]</mo><mo>)</mo></math>
+            <span>(3)</span>
+          </div>
+
+          <p>其中 <em>Δ<sub>θ</sub> = log π<sub>θ</sub>(y<sup>+</sup>|x) − log π<sub>θ</sub>(y<sup>−</sup>|x)</em>，参考模型也计算同样的 <em>Δ<sub>ref</sub></em>。因此 DPO 学习的是：<strong>相对于参考模型，进一步拉开 preferred 与 rejected 回答之间的概率差距。</strong></p>
+
+          <p>这里的 <em>π(y|x)</em> 是整段 completion 的序列概率，log-probability 通常由回答 token 的 log-probability 求和得到。是否引入长度归一化会改变目标含义，不能在复现原始 DPO 时无条件把它改成每 token 平均。</p>
+
+          <pre class="code-block"><code>freeze(reference_model)
+
+for prompt, chosen, rejected in preference_data:
+    chosen_margin = logp(model, prompt, chosen) - logp(reference_model, prompt, chosen)
+    rejected_margin = logp(model, prompt, rejected) - logp(reference_model, prompt, rejected)
+    loss = -logsigmoid(beta * (chosen_margin - rejected_margin))
+    update(model, loss)</code></pre>
+
+          <h3>DPO 省掉了什么，又没有省掉什么？</h3>
+
+          <p>DPO 不需要单独训练一个 reward model，也不需要在训练循环中用当前策略生成新回答，因此比典型的“reward model + PPO”链路更简单。但它并不是“没有奖励”：chosen/rejected 标签本身就在编码人类偏好；训练时也仍需一个冻结的 reference model，或预先缓存它对数据的 log-probability。</p>
+
+          <p><em>β</em> 来自 KL 正则化的推导，控制策略偏离参考分布的尺度。在原始推导中，更大的 <em>β</em> 对应更强的参考约束；但实际训练后的 KL 还会同时受到数据、学习率、batch、训练步数和实现细节影响，因此不能只凭一个 <em>β</em> 值判断模型会偏移多少。</p>
+
+          <h3>DPO 的常见陷阱</h3>
+
+          <ul class="reading-list">
+            <li><strong>相对更好不等于足够好。</strong>如果 chosen 只是“两害相权取其轻”，DPO 仍会把它当作正例；</li>
+            <li><strong>优化的是相对间隔。</strong>损失下降不保证 chosen 的绝对概率在每个样本上都上升；</li>
+            <li><strong>偏好可能存在捷径。</strong>长度、标题数量、礼貌套话或固定格式都可能被模型误当作质量信号；</li>
+            <li><strong>参考链路必须一致。</strong>policy 与 reference 的 tokenizer、chat template、截断方式和 response mask 应保持一致；</li>
+            <li><strong>离线数据限制探索。</strong>如果偏好集没有覆盖模型部署时会遇到的行为，DPO 不会凭空评价那些新区域。</li>
+          </ul>
+
+          <h2>GRPO：用组内相对奖励做在线优化</h2>
+
+          <p>Group Relative Policy Optimization 最初由 <a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noreferrer">DeepSeekMath</a> 提出，是 PPO 的一种变体。它最重要的变化是：不再训练单独的 value/critic 模型来估计基线，而是针对同一个 prompt 采样一组回答，用这组回答的相对奖励估计 advantage。</p>
+
+          <ol class="reading-list">
+            <li><strong>组内采样：</strong>从旧策略 <em>π<sub>old</sub></em> 为同一个 prompt 生成 <em>G</em> 个回答；</li>
+            <li><strong>计算奖励：</strong>用规则验证器、程序测试、reward model 或它们的组合为每个回答打分；</li>
+            <li><strong>计算相对优势：</strong>高于组内平均分的回答得到正 advantage，低于平均分的得到负 advantage；</li>
+            <li><strong>更新策略：</strong>提高高优势回答的概率，压低低优势回答的概率，并通过 clipping 与可选 KL 项限制单次更新幅度。</li>
+          </ol>
+
+          <div class="equation" aria-label="公式 4：GRPO 的组内相对优势">
+            <math display="block"><msub><mi>A</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>r</mi><mi>i</mi></msub><mo>−</mo><mi>mean</mi><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>r</mi><mi>G</mi></msub><mo>)</mo></mrow><mrow><mi>std</mi><mo>(</mo><msub><mi>r</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>r</mi><mi>G</mi></msub><mo>)</mo><mo>+</mo><mi>ε</mi></mrow></mfrac></math>
+            <span>(4)</span>
+          </div>
+
+          <p>例如，同一道数学题生成四个答案，奖励分别为 <code>[1, 1, 0, 0]</code>。前两个答案高于组平均分，获得正优势；后两个获得负优势。如果四个回答全对或全错，组内方差接近零，这个 prompt 几乎无法提供相对学习信号。</p>
+
+          <p>更新时定义 token 级重要性比率 <em>ρ<sub>i,t</sub> = π<sub>θ</sub>(y<sub>i,t</sub>|x,y<sub>i,&lt;t</sub>) / π<sub>old</sub>(y<sub>i,t</sub>|x,y<sub>i,&lt;t</sub>)</em>。GRPO 沿用 PPO 的 clipped surrogate：当新策略相对旧策略变化过大时截断比率，避免一次更新把概率推得过远。原始形式还加入相对参考模型 <em>π<sub>ref</sub></em> 的 KL 惩罚。</p>
+
+          <div class="equation" aria-label="公式 5：GRPO 的简化裁剪目标">
+            <math display="block"><msub><mi>J</mi><mtext>GRPO</mtext></msub><mo>=</mo><mi>𝔼</mi><mo>[</mo><mfrac><mn>1</mn><mi>G</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>G</mi></munderover><mfrac><mn>1</mn><mrow><mo>|</mo><msub><mi>o</mi><mi>i</mi></msub><mo>|</mo></mrow></mfrac><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mrow><mo>|</mo><msub><mi>o</mi><mi>i</mi></msub><mo>|</mo></mrow></munderover><mo>{</mo><mi>min</mi><mo>(</mo><msub><mi>ρ</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><msub><mi>A</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><mi>clip</mi><mo>(</mo><msub><mi>ρ</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><mn>1</mn><mo>−</mo><mi>ε</mi><mo>,</mo><mn>1</mn><mo>+</mo><mi>ε</mi><mo>)</mo><msub><mi>A</mi><mrow><mi>i</mi><mo>,</mo><mi>t</mi></mrow></msub><mo>)</mo><mo>−</mo><mi>β</mi><msub><mi>D</mi><mtext>KL</mtext></msub><mo>(</mo><msub><mi>π</mi><mi>θ</mi></msub><mo>∥</mo><msub><mi>π</mi><mtext>ref</mtext></msub><mo>)</mo><mo>}</mo><mo>]</mo></math>
+            <span>(5)</span>
+          </div>
+
+          <p>公式 (5) 保留了原始 GRPO 的序列与 token 聚合，KL 项只写成了简记。对于 outcome reward，同一回答内的 token 共享一个组内优势；使用 process supervision 时，优势也可以随步骤变化。不同实现对 advantage 是否除以组内标准差、loss 按序列还是全局 token 聚合、KL 如何估计、一个 rollout 重复更新多少次，都可能有差异。比如当前 <a href="https://huggingface.co/docs/trl/grpo_trainer" target="_blank" rel="noreferrer">Hugging Face TRL 文档</a>明确区分了原始 GRPO 与多种长度归一化变体，并允许关闭 KL；阅读实验结果时，不能只看“使用 GRPO”这个名称，还要核对实际 objective 和配置。</p>
+
+          <h3>GRPO 为什么适合可验证任务？</h3>
+
+          <p>数学最终答案、代码单元测试、结构化输出校验和部分工具调用任务，可以较低成本得到相对客观的 reward。在线采样让模型有机会探索 SFT 数据中不存在的解法，而组内比较又把不同题目的绝对难度部分抵消。<a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noreferrer">DeepSeek-R1</a> 进一步展示了大规模 RL 对推理行为的作用；同时，其 R1-Zero 实验也出现可读性差和语言混杂，说明“可以不先做 SFT”不等于“产品训练就应跳过冷启动数据”。</p>
+
+          <h3>省掉 critic，不代表训练便宜</h3>
+
+          <p>GRPO 省掉的是 value model。每个 prompt 要生成多个完整回答，在线生成通常正是主要成本。group size 太小，组内基线噪声大；group size 太大，采样成本迅速上升。更关键的是 reward：只要验证器存在漏洞，模型就可能学会利用漏洞，而不是完成真实任务。</p>
+
+          <ul class="reading-list">
+            <li><strong>奖励稀疏：</strong>大量组全对或全错，advantage 接近零；</li>
+            <li><strong>奖励攻击：</strong>模型找到验证器没有覆盖的投机格式或边界条件；</li>
+            <li><strong>信用分配困难：</strong>最终答案奖励很难指出长推理链中究竟哪一步有价值；</li>
+            <li><strong>长度偏差：</strong>归一化方式可能系统性偏好更长或更短的回答；</li>
+            <li><strong>策略过期：</strong>rollout 被重复使用太久后，数据与当前策略之间的 off-policy 偏差增大。</li>
+          </ul>
+
+          <h2>SFT、DPO、GRPO 的核心差异</h2>
+
+          <div class="paper-table-wrap">
+            <table class="paper-table task-table">
+              <caption>三种 Post-Training 方法对比</caption>
+              <thead><tr><th>维度</th><th>SFT</th><th>DPO</th><th>GRPO</th></tr></thead>
+              <tbody>
+                <tr><th>监督信号</th><td>高质量示范</td><td>成对偏好</td><td>标量奖励或验证器</td></tr>
+                <tr><th>典型数据</th><td><code>(x, y*)</code></td><td><code>(x, y+, y−)</code></td><td>prompt + 在线 rollout</td></tr>
+                <tr><th>训练时生成新回答</th><td>不需要</td><td>不需要</td><td>需要，每题多个</td></tr>
+                <tr><th>是否在线探索</th><td>否</td><td>否</td><td>是</td></tr>
+                <tr><th>显式 reward model</th><td>不需要</td><td>不需要</td><td>不一定；但必须有 reward function</td></tr>
+                <tr><th>value / critic</th><td>不需要</td><td>不需要</td><td>不需要</td></tr>
+                <tr><th>参考模型</th><td>通常不需要</td><td>通常需要</td><td>原始 KL 形式需要；实现可选</td></tr>
+                <tr><th>主要优势</th><td>稳定、简单、监督密集</td><td>直接利用偏好，离线训练</td><td>能够探索离线数据之外的行为</td></tr>
+                <tr><th>主要风险</th><td>模仿数据偏差，缺少探索</td><td>偏好噪声与捷径</td><td>奖励攻击、方差与生成成本</td></tr>
+                <tr><th>常见用途</th><td>指令、格式、领域行为</td><td>风格、有用性、安全偏好</td><td>数学、代码、可验证任务</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p><strong>反馈越自由，并不代表训练天然越强。</strong>当评价机制不可靠时，优化能力越强，模型放大代理目标错误的速度也可能越快。SFT 的“答案”昂贵但直接；DPO 把绝对评分降为两两比较；GRPO 允许在线探索，却把成败更多地交给 reward 设计。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <aside class="article-toc" aria-label="文章目录">
+          <nav data-article-toc></nav>
+        </aside>
+      </div>
+    </article>
+  </main>
+  <script>
+    document.querySelectorAll("[data-term-trigger]").forEach(trigger=>{
+      trigger.addEventListener("click",()=>{
+        const explanation=document.getElementById(trigger.getAttribute("aria-controls"));
+        const willExpand=trigger.getAttribute("aria-expanded")!=="true";
+        trigger.setAttribute("aria-expanded",String(willExpand));
+        if(explanation)explanation.hidden=!willExpand;
+      });
+    });
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@
   <title>Blog - Yangliduo Lai</title>
   <link rel="alternate" hreflang="en" href="./">
   <link rel="alternate" hreflang="zh-CN" href="index-zh.html">
-  <link rel="icon" href="../assets/favicon.svg?v=2" type="image/svg+xml">
+  <link rel="icon" href="../assets/favicon.svg?v=3" type="image/svg+xml">
   <link rel="stylesheet" href="blog.css?v=14">
   <script src="blog.js?v=8" defer></script>
 </head>
@@ -30,15 +30,95 @@
     <section class="blog-tools" aria-label="查找博客文章">
       <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><span class="sr-only">搜索文章</span><input type="search" placeholder="搜索" autocomplete="off" data-blog-search></label>
       <label class="sort-box"><span class="sr-only">文章排序</span><select data-blog-sort><option value="newest">最新优先</option><option value="oldest">最早优先</option></select></label>
-      <div class="tag-filters" aria-label="按标签筛选"><button type="button" class="is-active" data-blog-tag="all" aria-pressed="true">全部</button><button type="button" data-blog-tag="machine-learning" aria-pressed="false">机器学习</button><button type="button" data-blog-tag="evaluation" aria-pressed="false">模型评测</button><button type="button" data-blog-tag="paper" aria-pressed="false">论文阅读</button><button type="button" data-blog-tag="mental-health" aria-pressed="false">心理健康</button><button type="button" data-blog-tag="synthetic-data" aria-pressed="false">合成数据</button></div>
+      <div class="tag-filters" aria-label="按标签筛选"><button type="button" class="is-active" data-blog-tag="all" aria-pressed="true">全部</button><button type="button" data-blog-tag="machine-learning" aria-pressed="false">机器学习</button><button type="button" data-blog-tag="post-training" aria-pressed="false">Post-Training</button><button type="button" data-blog-tag="evaluation" aria-pressed="false">模型评测</button><button type="button" data-blog-tag="paper" aria-pressed="false">论文阅读</button><button type="button" data-blog-tag="mental-health" aria-pressed="false">心理健康</button><button type="button" data-blog-tag="synthetic-data" aria-pressed="false">合成数据</button></div>
     </section>
     <section class="post-list" aria-label="按月份排列的博客文章" data-post-grid>
-      <a class="post-card" href="held-out-concept.html" data-title="Held-out 是什么" data-tags="machine-learning evaluation" data-date="2026-08-22">
+      <a class="post-card" href="posts/2026-09/search-r1-paper-reading-notes.html" data-title="Search-R1《Training LLMs to Reason and Leverage Search Engines with Reinforcement Learning》阅读笔记" data-tags="machine-learning paper post-training reinforcement-learning agents retrieval search-r1" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>Search-R1《Training LLMs to Reason and Leverage Search Engines with Reinforcement Learning》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>强化学习</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/fireact-paper-reading-notes.html" data-title="FireAct《Toward Language Agent Fine-tuning》阅读笔记" data-tags="machine-learning paper agents react fine-tuning fireact" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>FireAct《Toward Language Agent Fine-tuning》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>监督微调</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/dmpo-paper-reading-notes.html" data-title="DMPO《Direct Multi-Turn Preference Optimization for Language Agents》阅读笔记" data-tags="machine-learning paper post-training preference-optimization agents dmpo" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>DMPO《Direct Multi-Turn Preference Optimization for Language Agents》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>偏好优化</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/large-language-models-as-optimizers-reading-notes.html" data-title="OPRO《Large Language Models as Optimizers》阅读笔记" data-tags="machine-learning paper prompt-optimization opro" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>OPRO《Large Language Models as Optimizers》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>提示优化</span><span>OPRO</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/dspy-paper-reading-notes.html" data-title="DSPy《Compiling Declarative Language Model Calls into Self-Improving Pipelines》阅读笔记" data-tags="machine-learning paper dspy prompt-optimization lm-pipelines" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>DSPy《Compiling Declarative Language Model Calls into Self-Improving Pipelines》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>提示优化</span><span>语言模型流水线</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/lats-paper-reading-notes.html" data-title="LATS《Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models》阅读笔记" data-tags="machine-learning paper agents tree-search planning lats" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>LATS《Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>树搜索</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/ircot-paper-reading-notes.html" data-title="IRCoT《Interleaving Retrieval with Chain-of-Thought Reasoning for Knowledge-Intensive Multi-Step Questions》阅读笔记" data-tags="machine-learning paper retrieval multi-hop-qa reasoning ircot" data-date="2026-09-14">
+        <div class="post-card-meta"><time datetime="2026-09-14">2026 年 9 月 14 日</time></div>
+        <h2>IRCoT《Interleaving Retrieval with Chain-of-Thought Reasoning for Knowledge-Intensive Multi-Step Questions》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>检索增强</span><span>多跳问答</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/react-paper-reading-notes.html" data-title="ReAct《Synergizing Reasoning and Acting in Language Models》阅读笔记" data-tags="machine-learning paper agents react reasoning tool-use" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>ReAct《Synergizing Reasoning and Acting in Language Models》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>ReAct</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/deepseek-r1-paper-reading-notes.html" data-title="DeepSeek-R1《Incentivizing Reasoning Capability in LLMs via Reinforcement Learning》阅读笔记" data-tags="machine-learning paper post-training reinforcement-learning grpo reasoning deepseek-r1" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>DeepSeek-R1《Incentivizing Reasoning Capability in LLMs via Reinforcement Learning》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>强化学习</span><span>GRPO</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/deepseekmath-paper-reading-notes.html" data-title="GRPO《Pushing the Limits of Mathematical Reasoning in Open Language Models》阅读笔记" data-tags="machine-learning paper post-training reinforcement-learning grpo math-reasoning deepseekmath" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>GRPO《Pushing the Limits of Mathematical Reasoning in Open Language Models》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>数学推理</span><span>GRPO</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/sft-supervised-fine-tuning.html" data-title="SFT 监督微调" data-tags="machine-learning post-training sft supervised-fine-tuning alignment" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>SFT 监督微调</h2>
+        <div class="post-tags"><span>机器学习</span><span>SFT</span><span>Post-Training</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/instructgpt-paper-reading-notes.html" data-title="InstructGPT《Training language models to follow instructions with human feedback》阅读笔记" data-tags="machine-learning paper post-training alignment rlhf instructgpt human-feedback" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>InstructGPT《Training language models to follow instructions with human feedback》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>RLHF</span><span>模型对齐</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/ppo-paper-reading-notes.html" data-title="PPO《Proximal Policy Optimization Algorithms》阅读笔记" data-tags="machine-learning paper post-training reinforcement-learning ppo policy-gradient" data-date="2026-09-13">
+        <div class="post-card-meta"><time datetime="2026-09-13">2026 年 9 月 13 日</time></div>
+        <h2>PPO《Proximal Policy Optimization Algorithms》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>强化学习</span><span>PPO</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/fine-tuning-language-models-from-human-preferences-reading-notes.html" data-title="RLHF《Fine-Tuning Language Models from Human Preferences》阅读笔记" data-tags="machine-learning paper post-training alignment rlhf human-feedback ppo reward-model" data-date="2026-09-12">
+        <div class="post-card-meta"><time datetime="2026-09-12">2026 年 9 月 12 日</time></div>
+        <h2>RLHF《Fine-Tuning Language Models from Human Preferences》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>RLHF</span><span>模型对齐</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/dpo-paper-reading-notes.html" data-title="DPO《Direct Preference Optimization: Your Language Model is Secretly a Reward Model》阅读笔记" data-tags="machine-learning paper post-training alignment dpo preference-learning" data-date="2026-09-11">
+        <div class="post-card-meta"><time datetime="2026-09-11">2026 年 9 月 11 日</time></div>
+        <h2>DPO《Direct Preference Optimization: Your Language Model is Secretly a Reward Model》阅读笔记</h2>
+        <div class="post-tags"><span>论文阅读</span><span>机器学习</span><span>模型对齐</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-09/post-training-sft-dpo-grpo.html" data-title="大模型 Post-Training：从 SFT、DPO 到 GRPO" data-tags="machine-learning post-training sft dpo grpo alignment reinforcement-learning" data-date="2026-09-11">
+        <div class="post-card-meta"><time datetime="2026-09-11">2026 年 9 月 11 日</time></div>
+        <h2>大模型 Post-Training：从 SFT、DPO 到 GRPO</h2>
+        <div class="post-tags"><span>机器学习</span><span>Post-Training</span><span>模型对齐</span></div>
+      </a>
+      <a class="post-card" href="posts/2026-08/held-out-concept.html" data-title="Held-out 是什么" data-tags="machine-learning evaluation" data-date="2026-08-22">
         <div class="post-card-meta"><time datetime="2026-08-22">2026 年 8 月 22 日</time></div>
         <h2>Held-out 是什么</h2>
         <div class="post-tags"><span>机器学习</span><span>模型评测</span></div>
       </a>
-      <a class="post-card" href="psy-chronicle-reading-notes.html" data-title="《CPCD》阅读笔记：合成长程校园心理咨询对话数据集与 Benchmark" data-tags="paper mental-health synthetic-data" data-date="2026-08-21">
+      <a class="post-card" href="posts/2026-08/psy-chronicle-reading-notes.html" data-title="《CPCD》阅读笔记：合成长程校园心理咨询对话数据集与 Benchmark" data-tags="paper mental-health synthetic-data" data-date="2026-08-21">
         <div class="post-card-meta"><time datetime="2026-08-21">2026 年 8 月 21 日</time></div>
         <h2>《CPCD》阅读笔记：合成长程校园心理咨询对话数据集与 Benchmark</h2>
         <div class="post-tags"><span>论文阅读</span><span>心理健康</span><span>合成数据</span></div>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="《FireAct: Toward Language Agent Fine-tuning》阅读笔记：为什么微调 ReAct 智能体、如何构造多方法与多任务轨迹，以及 HotpotQA 等实验的收益与边界。">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>FireAct《Toward Language Agent Fine-tuning》阅读笔记</title>
+  <link rel="alternate" hreflang="zh-CN" href="fireact-paper-reading-notes.html">
+  <link rel="icon" href="../../../assets/favicon.svg?v=3" type="image/svg+xml">
+  <link rel="stylesheet" href="../../blog.css?v=14">
+  <link rel="stylesheet" href="../../local-editor.css?v=3">
+  <script src="../../blog.js?v=8" defer></script>
+  <script src="../../local-editor.js?v=3" defer></script>
+</head>
+<body>
+  <header class="blog-header"><nav class="blog-nav" aria-label="博客导航"><a class="blog-word" href="../../index-zh.html">Blog</a><div class="blog-nav-actions"><a class="profile-link" href="../../index-zh.html"><span aria-hidden="true">←</span> 全部文章</a><button class="blog-theme-toggle" type="button" aria-label="切换颜色主题"><svg class="blog-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4-1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="blog-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.6A9 9 0 0 1 8.4 3.3a9 9 0 1 0 12.3 12.3Z"/></svg></button></div></nav></header>
+  <div class="local-editor-toolbar" data-local-editor hidden>
+    <button type="button" data-local-editor-edit>编辑文章</button>
+    <button type="button" data-local-editor-add hidden>＋ 下方添加段落</button>
+    <button type="button" data-local-editor-image hidden>插入图片</button>
+    <button type="button" data-local-editor-delete hidden disabled>删除本段</button>
+    <button type="button" data-local-editor-save hidden>保存到 HTML</button>
+    <button type="button" data-local-editor-cancel hidden>取消</button>
+    <span class="local-editor-status" data-local-editor-status aria-live="polite"></span>
+  </div>
+  <main class="blog-shell post-main">
+    <article>
+      <header class="post-header">
+        <h1>FireAct《Toward Language Agent Fine-tuning》阅读笔记</h1>
+        <div class="post-header-tags" aria-label="文章标签"><span>论文阅读</span><span>机器学习</span><span>智能体</span><span>监督微调</span></div>
+        <div class="post-byline"><time datetime="2026-09-14">2026 年 9 月 14 日</time><i></i><span>约 7 分钟阅读</span></div>
+      </header>
+      <div class="post-layout">
+        <!-- LOCAL_EDITOR_START -->
+        <div class="article-body" data-local-editable-root="">
+          <p class="lead">这篇笔记阅读 Chen 等人的 <a href="https://arxiv.org/abs/2310.05915" target="_blank" rel="noreferrer"><em>FireAct: Toward Language Agent Fine-tuning</em></a>。它追问一个接在 ReAct 后面的自然问题：<strong>既然我们能用提示词让模型边思考边搜索，能不能把成功的整段过程教给模型，让智能体本身更会做这件事？</strong>先说结论：FireAct 主要是<strong>智能体轨迹的监督微调与数据混合方法</strong>，不是新设计了一个 PPO、DPO 或强化学习目标。</p>
+
+          <h2>贡献：把“照着示例做”变成“训练后会做”</h2>
+
+          <p>ReAct 常用的做法，是在提示词里放几条示范，让现成模型模仿“Thought（想一想）→ Action（搜索或回答）→ Observation（工具返回结果）”的循环。FireAct 把高质量的完整轨迹变成训练样本，直接微调底层语言模型。论文进一步提出：示范不应只有一种解题路径。<strong>简单题可以直接推理并回答，难题可以多轮搜索，卡住时可以反思并改换策略。</strong>于是它把不同任务、不同提示方法生成的轨迹统一整理成 ReAct 格式，再一起训练。</p>
+
+          <h2>背景：只靠少量 ReAct 示例有什么不足</h2>
+
+          <p>提示词里的几条示范不会改变模型参数。模型可能学会了输出格式，却仍在每道题上机械地搜索；遇到无用搜索结果时，也可能反复搜索相近关键词。若每轮对话都附带长示范，调用成本和延迟还会随着多轮上下文一起增加。FireAct 的想法是用大量成功轨迹给模型更充分的学习信号，让它在推理时不必再携带 few-shot 示例。</p>
+
+          <p>这里要分清两件事：<strong>不带 few-shot 示例，不等于不调用工具。</strong>训练后的模型仍会输出 ReAct 式的行动；遇到需要外部知识的问题，它照样发起 Google 搜索，并利用返回的观察继续回答。变化的是“模型如何学会决定下一步”，不是把搜索结果提前背进模型。</p>
+
+          <h2>方法：FireAct 的训练 Pipeline</h2>
+
+          <ol class="reading-list">
+            <li><strong>准备问题与搜索工具：</strong>从问答数据集中取问题及标准答案。实验中的工具通过 SerpAPI 调用 Google 搜索，向智能体返回一条简短的答案框或搜索摘要。</li>
+            <li><strong>让 GPT-4 生成示范轨迹：</strong>分别用 ReAct、思维链（CoT）、Reflexion 提示 GPT-4 解题，记录它的思考、搜索行动、工具观察和最终答案；挑选成功轨迹用于训练。基础 HotpotQA 实验使用 500 条成功的 ReAct 轨迹，数据整理过程也包含人工检查。</li>
+            <li><strong>统一格式并混合：</strong>ReAct 轨迹保留多轮思考—行动—观察；CoT 的推理与答案改写成只需一轮、直接结束的 ReAct 轨迹；Reflexion 轨迹在长时间搜索后加入反思，以展示如何改变策略。还可以把 HotpotQA、StrategyQA、MMLU 等不同题型的轨迹混在一起。</li>
+            <li><strong>监督微调并实际运行：</strong>让较小模型学习这些完整轨迹中的下一步文本。论文对 GPT-3.5 使用当时的微调接口，对多数 Llama-2、CodeLlama 实验使用 LoRA。测试时把新问题交给微调后的模型；模型可直接回答，也可提出搜索行动，等工具返回后继续生成。</li>
+          </ol>
+
+          <div class="article-callout"><strong>一条轨迹长什么样？</strong>例如“问题：A 与 B 谁更早出生？→ Thought：需要查两人的出生年份 → Action：搜索 A 的出生年份 → Observation：搜索摘要给出年份 → Thought：再查 B → Action：搜索 B 的出生年份 → Observation：得到年份 → Action：提交答案”。这是为了理解流程而写的示意，不是论文中的真实训练样本。模型负责产生思考和行动；<strong>Observation 来自工具</strong>，不是模型当场编造的事实。</div>
+
+          <p>“混合方法”在这里发生于<strong>训练数据阶段</strong>，不是推理时先运行三个独立智能体再投票。CoT 样本让模型见到“不搜索也能解”的路线，Reflexion 样本让模型见到“搜索受阻后改变方向”的路线。训练完成后仍是一个模型在同一条 ReAct 交互流程中决定下一步。</p>
+
+          <h2>实验：微调带来了什么</h2>
+
+          <p>论文先做最干净的对比：只用 HotpotQA 的 500 条 GPT-4 ReAct 成功轨迹训练，在随机抽取的 500 道 HotpotQA 开发集问题上，以<strong>精确匹配率（EM）</strong>评估答案是否与标准答案一致。同一种底层模型，比较 few-shot ReAct 提示与微调后的 FireAct：</p>
+
+          <div class="paper-table-wrap"><table class="paper-table"><caption>HotpotQA 精确匹配率（%），越高越好</caption><thead><tr><th>底层模型</th><th>few-shot ReAct</th><th>FireAct 微调后</th></tr></thead><tbody>
+            <tr><th>Llama-2-7B</th><td>14.8</td><td>26.2</td></tr>
+            <tr><th>Llama-2-13B</th><td>21.2</td><td>34.4</td></tr>
+            <tr><th>GPT-3.5</th><td>31.4</td><td>39.2</td></tr>
+          </tbody></table></div>
+
+          <p>Llama-2-7B 从 14.8 提升到 26.2，是<strong>增加 11.4 个百分点</strong>，相对原成绩提高约 <strong>77%</strong>；不能读成准确率达到 77%。微调后的 Llama-2-13B 超过了论文中 GPT-3.5 的几种提示基线，但微调后的 GPT-3.5 仍低于 GPT-4 的 CoT（45.0）和 ReAct（42.0）提示成绩。提升明显，不等于较小模型全面追上 GPT-4。</p>
+
+          <p>第二步检验“多种解题路线”是否真的有用。在 GPT-3.5 的 HotpotQA 多方法实验中，仅 ReAct 轨迹是 <strong>39.4 EM</strong>；加入 187 条成功 CoT 轨迹后为 <strong>41.0</strong>，平均交互轮数从 3.2 降到 2.7；加入 47 条长 Reflexion 轨迹则为 <strong>38.8</strong>。这里 ReAct-only 的 39.4 与上表 39.2 来自论文不同实验表，不能把 0.2 的差异当作方法收益。更重要的是：<strong>数据种类变多不保证分数单调上升</strong>，不同底层模型适合的数据配比也不同。</p>
+
+          <p>第三步看跨任务：混合 HotpotQA、StrategyQA、MMLU 的 ReAct 与 CoT 轨迹后，GPT-3.5 在 StrategyQA 得到 <strong>72.9 EM</strong>，高于 few-shot ReAct 的 61.0；Bamboogle 从 ReAct 基线的 40.8 到 50.4。但在 MMLU 上，混合微调的 65.8 仍低于简单输入—输出提示的 68.6。这说明多任务训练有价值，却不能概括为“所有任务都更好”。</p>
+
+          <p>论文还测试了推理效率和干扰性工具返回。在它的 GPT-3.5 实验设置里，单题平均耗时从 few-shot ReAct 的 <strong>9.0 秒</strong>降到 FireAct 的 <strong>2.7 秒</strong>；若搜索工具有 50% 概率返回随机的旧搜索结果，ReAct 的 EM 从 31.4 降到 22.6，FireAct 从 39.2 降到 37.2。这里的成本与鲁棒性结论依赖特定模型、工具和扰动方式，不能直接外推到所有智能体系统。</p>
+
+          <h2>读完该记住什么</h2>
+
+          <p><strong>ReAct 告诉模型“怎样交替思考和行动”；FireAct 进一步把成功行动过程变成可学习的数据。</strong>它最有启发的不是复杂新损失，而是把多轮搜索、一步作答、受阻反思整理成兼容的训练样本，让一个微调后的模型学习何时该用哪种路线。</p>
+
+          <p>但论文的验证范围仍是<strong>问答任务加一种 Google 搜索工具</strong>。训练数据依赖 GPT-4 生成并筛选成功轨迹；失败过程、复杂网页交互、多工具协作以及更真实的环境反馈，尚未由这些实验充分证明。实践中应同时衡量数据构造成本、搜索工具质量，以及新任务是否真的受益于这些轨迹。</p>
+
+          <div class="article-end"><a href="../../index-zh.html">← 返回全部文章</a></div>
+        </div>
+        <!-- LOCAL_EDITOR_END -->
+        <aside class="article-toc" aria-label="文章目录"><nav data-article-toc></nav></aside>
+      </div>
+    </article>
+  </main>
+</body>
+</html>
