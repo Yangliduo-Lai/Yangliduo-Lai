@@ -1,21 +1,36 @@
-const root=document.documentElement,body=document.body,header=document.querySelector("[data-header]"),progress=document.querySelector(".scroll-progress span"),menuButton=document.querySelector(".menu-button"),mobileMenu=document.querySelector(".mobile-menu"),reduceMotion=matchMedia("(prefers-reduced-motion: reduce)");
-root.dataset.theme="light";
-sessionStorage.setItem("portfolio-theme","light");
-document.querySelector(".theme-toggle")?.addEventListener("click",()=>{const next=root.dataset.theme==="dark"?"light":"dark";root.dataset.theme=next;sessionStorage.setItem("portfolio-theme",next);document.querySelector('meta[name="theme-color"]')?.setAttribute("content",next==="dark"?"#101014":"#f7f7fb")});
-function closeMenu(){menuButton?.setAttribute("aria-expanded","false");mobileMenu?.classList.remove("is-open");header?.classList.remove("menu-visible");body.classList.remove("menu-open")}
-menuButton?.addEventListener("click",()=>{const open=menuButton.getAttribute("aria-expanded")!=="true";menuButton.setAttribute("aria-expanded",String(open));mobileMenu?.classList.toggle("is-open",open);header?.classList.toggle("menu-visible",open);body.classList.toggle("menu-open",open)});
-mobileMenu?.querySelectorAll("a").forEach(link=>link.addEventListener("click",closeMenu));addEventListener("keydown",event=>{if(event.key==="Escape")closeMenu()});
-let ticking=false;function updateScroll(){const top=scrollY,distance=document.documentElement.scrollHeight-innerHeight;header?.classList.toggle("is-scrolled",top>18);if(progress)progress.style.transform=`scaleX(${distance>0?Math.min(top/distance,1):0})`;ticking=false}
-addEventListener("scroll",()=>{if(!ticking){requestAnimationFrame(updateScroll);ticking=true}},{passive:true});updateScroll();
-const revealItems=document.querySelectorAll(".reveal, .reveal-child");
-if("IntersectionObserver"in window&&!reduceMotion.matches){const observer=new IntersectionObserver((entries,current)=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("is-visible");current.unobserve(entry.target)}}),{threshold:.12,rootMargin:"0px 0px -7%"});revealItems.forEach(item=>observer.observe(item))}else revealItems.forEach(item=>item.classList.add("is-visible"));
-const navLinks=[...document.querySelectorAll('.desktop-nav a[href^="#"]')];
-if("IntersectionObserver"in window){const observer=new IntersectionObserver(entries=>{const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible)navLinks.forEach(link=>link.classList.toggle("active",link.hash===`#${visible.target.id}`))},{rootMargin:"-25% 0px -55%",threshold:[.01,.2,.5]});navLinks.map(link=>document.querySelector(link.hash)).filter(Boolean).forEach(section=>observer.observe(section))}
-document.querySelectorAll(".spotlight").forEach(card=>card.addEventListener("pointermove",event=>{const box=card.getBoundingClientRect();card.style.setProperty("--mx",`${event.clientX-box.left}px`);card.style.setProperty("--my",`${event.clientY-box.top}px`)}));
-document.querySelectorAll('a[href="#"]').forEach(link=>link.addEventListener("click",event=>event.preventDefault()));
-const parallaxRoot=document.querySelector("[data-parallax-root]"),parallaxCard=document.querySelector("[data-parallax-card]");
-if(parallaxRoot&&parallaxCard&&!reduceMotion.matches){parallaxRoot.addEventListener("pointermove",event=>{const box=parallaxRoot.getBoundingClientRect(),x=(event.clientX-box.left)/box.width-.5,y=(event.clientY-box.top)/box.height-.5;parallaxCard.style.transform=`rotateX(${-y*4}deg) rotateY(${x*5}deg) translate3d(${x*5}px,${y*5}px,0)`});parallaxRoot.addEventListener("pointerleave",()=>parallaxCard.style.transform="none")}
-// EDIT-ME: update these rotating labels to match your academic identity.
-const roles=["curious researcher.","thoughtful builder.","lifelong learner."],typing=document.querySelector("[data-typing]"),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function typeRoles(){if(!typing||reduceMotion.matches)return;for(let index=0;;index=(index+1)%roles.length){typing.textContent="";for(const character of roles[index]){typing.textContent+=character;await wait(42+Math.random()*34)}await wait(1500);while(typing.textContent.length){typing.textContent=typing.textContent.slice(0,-1);await wait(24)}await wait(240)}}
-document.querySelector("[data-year]").textContent=new Date().getFullYear();addEventListener("load",()=>{requestAnimationFrame(()=>body.classList.add("is-ready"));setTimeout(typeRoles,900)});
+const root = document.documentElement;
+const themeToggle = document.querySelector(".theme-toggle");
+const themeColor = document.querySelector('meta[name="theme-color"]');
+
+function applyTheme(theme) {
+  root.dataset.theme = theme;
+  themeToggle?.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  themeColor?.setAttribute("content", theme === "dark" ? "#1c1c1d" : "#ffffff");
+}
+
+let initialTheme = "light";
+try {
+  if (sessionStorage.getItem("portfolio-theme") === "dark") initialTheme = "dark";
+} catch {}
+applyTheme(initialTheme);
+themeToggle?.addEventListener("click", () => {
+  const theme = root.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(theme);
+  try { sessionStorage.setItem("portfolio-theme", theme); } catch {}
+});
+
+const navLinks = [...document.querySelectorAll('.desktop-nav a[href^="#"]')];
+function updateNavigation() {
+  const current = navLinks.some(link => link.hash === location.hash) ? location.hash : "#home";
+  navLinks.forEach(link => {
+    const active = link.hash === current;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+}
+addEventListener("hashchange", updateNavigation);
+updateNavigation();
+
+const year = document.querySelector("[data-year]");
+if (year) year.textContent = new Date().getFullYear();
